@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: takvimo_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: takvimo
+      POSTGRES_PASSWORD: takvimo_dev_password
+      POSTGRES_DB: takvimo
+    ports:
+      - "5432:5432"
+    volumes:
+      - takvimo_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: takvimo_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - takvimo_redisdata:/data
+
+volumes:
+  takvimo_pgdata:
+  takvimo_redisdata:

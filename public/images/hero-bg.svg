@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 720" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="glow1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1150 140) rotate(130) scale(520 420)">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.24" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glow2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 560) rotate(25) scale(480 340)">
+      <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="wave1" x1="0" y1="0" x2="1440" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ECFDF5" stop-opacity="0.9" />
+      <stop offset="55%" stop-color="#D1FAE5" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#CCFBF1" stop-opacity="0.7" />
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#059669" stroke-opacity="0.055" stroke-width="1" />
+    </pattern>
+  </defs>
+
+  <rect width="1440" height="720" fill="#FFFFFF" />
+  <rect width="1440" height="720" fill="url(#grid)" />
+  <rect width="1440" height="720" fill="url(#glow1)" />
+  <rect width="1440" height="720" fill="url(#glow2)" />
+
+  <path
+    d="M0 490 C 260 410, 520 560, 820 460 C 1100 365, 1270 430, 1440 370 L 1440 720 L 0 720 Z"
+    fill="url(#wave1)"
+  />
+  <path
+    d="M0 570 C 340 500, 620 640, 960 540 C 1180 475, 1320 510, 1440 480 L 1440 720 L 0 720 Z"
+    fill="#10B981"
+    fill-opacity="0.06"
+  />
+
+  <circle cx="1180" cy="180" r="180" stroke="#059669" stroke-opacity="0.08" stroke-width="1.5" />
+  <circle cx="1180" cy="180" r="260" stroke="#059669" stroke-opacity="0.05" stroke-width="1" />
+</svg>

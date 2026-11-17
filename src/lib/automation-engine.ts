@@ -1,0 +1,171 @@
+import { prisma } from "@/lib/prisma";
+import { sendWhatsappMessage } from "@/lib/integrations/whatsapp";
+import { formatDateTR, formatTimeTR } from "@/lib/utils";
+
+type TriggerType = "ON_CREATE" | "BEFORE_START" | "ON_CANCEL" | "ON_RESCHEDULE";
+
+function renderTemplateBody(
+  preview: string,
+  contactName: string,
+  startAt: Date,
+  title: string
+): string {
+  const dateStr = `${formatDateTR(startAt)} ${formatTimeTR(startAt)}`;
+  return preview
+    .replace("{{1}}", contactName)
+    .replace("{{2}}", dateStr)
+    .replace("{{3}}", title);
+}
+
+/**
+ * Schedules idempotent WhatsApp automation jobs for an appointment lifecycle event.
+ */
+export async function scheduleAppointmentAutomations(
+  tenantId: string,
+  appointmentId: string,
+  trigger: Exclude<TriggerType, "BEFORE_START">
+): Promise<void> {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, tenantId },
+    include: { contact: true },
+  });
+  if (!appointment) return;
+
+  const rules = await prisma.automationRule.findMany({
+    where: {
+      tenantId,
+      isEnabled: true,
+      trigger: trigger === "ON_CREATE" ? { in: ["ON_CREATE", "BEFORE_START"] } : trigger,
+    },
+    include: { template: true },
+  });
+
+  // Cancel pending BEFORE_START reminders if appointment was cancelled or rescheduled
+  if (trigger === "ON_CANCEL" || trigger === "ON_RESCHEDULE") {
+    await prisma.notificationJob.updateMany({
+      where: {
+        tenantId,
+        appointmentId,
+        status: "PENDING",
+      },
+      data: { status: "CANCELLED" },
+    });
+  }
+
+  for (const rule of rules) {
+    if (!rule.template.isActive) continue;
+
+    // On reschedule, also re-schedule BEFORE_START if needed
+    const scheduledFor =
+      rule.trigger === "BEFORE_START"
+        ? new Date(appointment.startAt.getTime() + rule.offsetMinutes * 60_000)
+        : new Date();
+
+    if (rule.trigger === "BEFORE_START" && scheduledFor.getTime() <= Date.now()) {
+      continue;
+    }
+
+    const versionSalt = trigger === "ON_RESCHEDULE" ? appointment.updatedAt.getTime() : "v1";
+    const idempotencyKey = `${appointmentId}:${rule.id}:${trigger}:${versionSalt}`;
+
+    const job = await prisma.notificationJob.upsert({
+      where: { idempotencyKey },
+      update: {},
+      create: {
+        tenantId,
+        appointmentId,
+        ruleId: rule.id,
+        idempotencyKey,
+        scheduledFor,
+        status: "PENDING",
+      },
+    });
+
+    // Immediate dispatch for synchronous lifecycle triggers
+    if (rule.trigger !== "BEFORE_START") {
+      await executeNotificationJob(job.id);
+    }
+  }
+}
+
+export async function executeNotificationJob(jobId: string): Promise<void> {
+  const job = await prisma.notificationJob.findUnique({
+    where: { id: jobId },
+    include: {
+      appointment: { include: { contact: true, conversation: true } },
+      rule: { include: { template: true } },
+    },
+  });
+
+  if (!job || job.status === "SENT" || job.status === "CANCELLED") return;
+
+  const renderedBody = renderTemplateBody(
+    job.rule.template.bodyPreview,
+    job.appointment.contact.name,
+    job.appointment.startAt,
+    job.appointment.title
+  );
+
+  const result = await sendWhatsappMessage({
+    tenantId: job.tenantId,
+    toPhoneE164: job.appointment.contact.phoneE164,
+    type: "TEMPLATE",
+    body: renderedBody,
+    templateName: job.rule.template.metaTemplateName,
+  });
+
+  if (result.ok) {
+    await prisma.notificationJob.update({
+      where: { id: job.id },
+      data: {
+        status: "SENT",
+        attempts: { increment: 1 },
+        lastError: null,
+      },
+    });
+
+    if (job.appointment.conversationId) {
+      await prisma.message.create({
+        data: {
+          tenantId: job.tenantId,
+          conversationId: job.appointment.conversationId,
+          waMessageId: result.waMessageId,
+          direction: "OUTBOUND",
+          type: "TEMPLATE",
+          body: renderedBody,
+          templateName: job.rule.template.metaTemplateName,
+          status: "SENT",
+          isDemo: result.mode === "DEMO",
+        },
+      });
+    }
+  } else {
+    await prisma.notificationJob.update({
+      where: { id: job.id },
+      data: {
+        status: "FAILED",
+        attempts: { increment: 1 },
+        lastError: result.errorMessage ?? result.errorCode ?? "Gönderim hatası",
+        // Exponential backoff for next retry
+        scheduledFor: new Date(Date.now() + Math.pow(2, job.attempts + 1) * 60_000),
+      },
+    });
+  }
+}
+
+export async function processDueNotificationJobs(tenantId?: string): Promise<number> {
+  const dueJobs = await prisma.notificationJob.findMany({
+    where: {
+      ...(tenantId ? { tenantId } : {}),
+      status: { in: ["PENDING", "FAILED"] },
+      attempts: { lt: 3 },
+      scheduledFor: { lte: new Date() },
+    },
+    take: 25,
+  });
+
+  for (const job of dueJobs) {
+    await executeNotificationJob(job.id);
+  }
+  return dueJobs.length;
+}

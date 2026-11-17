@@ -1,0 +1,286 @@
+// TAKVIMO Multi-Tenant SaaS Database Schema
+// Local development uses SQLite (file:./dev.db) because Docker/PostgreSQL are not preinstalled.
+// For production deployment, switch provider to "postgresql" and point DATABASE_URL to PostgreSQL 16+.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  timezone          String   @default("Europe/Istanbul")
+  workStartHour     String   @default("09:00")
+  workEndHour       String   @default("18:00")
+  planTier          String   @default("STARTER") // STARTER | PRO
+  dataRetentionDays Int      @default(365)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  memberships               Membership[]
+  invitations               Invitation[]
+  whatsappAccounts          WhatsappAccount[]
+  googleCalendarConnections GoogleCalendarConnection[]
+  contacts                  Contact[]
+  conversations             Conversation[]
+  messages                  Message[]
+  appointments              Appointment[]
+  messageTemplates          MessageTemplate[]
+  automationRules           AutomationRule[]
+  notificationJobs          NotificationJob[]
+  auditLogs                 AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      String   @default("STAFF") // OWNER | ADMIN | STAFF
+  isActive  Boolean  @default(true)
+  colorHex  String   @default("#7C3AED")
+  createdAt DateTime @default(now())
+
+  tenant                 Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                   User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleCalendar         GoogleCalendarConnection?
+  assignedConversations  Conversation[]
+  assignedAppointments   Appointment[]
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  tenantId   String
+  email      String
+  role       String    @default("STAFF") // ADMIN | STAFF
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model WhatsappAccount {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  wabaId               String?
+  phoneNumberId        String?
+  displayPhone         String
+  encryptedAccessToken String?
+  webhookVerifyToken   String?
+  mode                 String   @default("DEMO") // DEMO | LIVE
+  status               String   @default("DISCONNECTED") // DISCONNECTED | CONNECTED | ERROR
+  lastError            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model GoogleCalendarConnection {
+  id                    String    @id @default(cuid())
+  tenantId              String
+  membershipId          String    @unique
+  googleEmail           String
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  calendarId            String    @default("primary")
+  watchChannelId        String?
+  watchResourceId       String?
+  watchExpiration       DateTime?
+  syncToken             String?
+  mode                  String    @default("DEMO") // DEMO | LIVE
+  status                String    @default("DISCONNECTED") // DISCONNECTED | CONNECTED | ERROR
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Contact {
+  id            String    @id @default(cuid())
+  tenantId      String
+  phoneE164     String
+  name          String
+  kvkkConsentAt DateTime?
+  anonymizedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  appointments  Appointment[]
+
+  @@unique([tenantId, phoneE164])
+  @@index([tenantId])
+}
+
+model Conversation {
+  id                    String    @id @default(cuid())
+  tenantId              String
+  contactId             String
+  assignedMembershipId  String?
+  status                String    @default("OPEN") // OPEN | RESOLVED
+  lastMessageAt         DateTime  @default(now())
+  lastCustomerMessageAt DateTime?
+  unreadCount           Int       @default(0)
+  isDemo                Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact            Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedMembership Membership?  @relation(fields: [assignedMembershipId], references: [id], onDelete: SetNull)
+  messages           Message[]
+  appointments       Appointment[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, lastMessageAt])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  tenantId       String
+  conversationId String
+  waMessageId    String?  @unique
+  direction      String   // INBOUND | OUTBOUND
+  type           String   @default("TEXT") // TEXT | TEMPLATE | SYSTEM
+  body           String
+  templateName   String?
+  status         String   @default("SENT") // QUEUED | SENT | DELIVERED | READ | FAILED
+  errorCode      String?
+  isDemo         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversationId])
+}
+
+model Appointment {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  contactId            String
+  assignedMembershipId String
+  conversationId       String?
+  title                String
+  startAt              DateTime
+  endAt                DateTime
+  status               String   @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED | RESCHEDULED | COMPLETED
+  googleEventId        String?
+  idempotencyKey       String   @unique
+  notes                String?
+  isDemo               Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact            Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedMembership Membership        @relation(fields: [assignedMembershipId], references: [id], onDelete: Restrict)
+  conversation       Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  notificationJobs   NotificationJob[]
+
+  @@index([tenantId, startAt])
+  @@index([tenantId, assignedMembershipId, startAt])
+}
+
+model MessageTemplate {
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String
+  category         String   // CONFIRMATION | REMINDER | CANCELLATION | RESCHEDULE
+  metaTemplateName String
+  language         String   @default("tr")
+  bodyPreview      String
+  metaStatus       String   @default("DEMO") // APPROVED | PENDING | DEMO
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  automationRules AutomationRule[]
+
+  @@index([tenantId])
+}
+
+model AutomationRule {
+  id            String   @id @default(cuid())
+  tenantId      String
+  trigger       String   // ON_CREATE | BEFORE_START | ON_CANCEL | ON_RESCHEDULE
+  offsetMinutes Int      @default(0) // e.g., -1440 for 24h before, -120 for 2h before
+  templateId    String
+  isEnabled     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template         MessageTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  notificationJobs NotificationJob[]
+
+  @@index([tenantId])
+}
+
+model NotificationJob {
+  id             String   @id @default(cuid())
+  tenantId       String
+  appointmentId  String
+  ruleId         String
+  idempotencyKey String   @unique
+  scheduledFor   DateTime
+  status         String   @default("PENDING") // PENDING | SENT | FAILED | CANCELLED
+  attempts       Int      @default(0)
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, scheduledFor])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    String?  // JSON string
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+}
