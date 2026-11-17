@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatPhoneDisplay, formatTimeTR, isWithin24Hours } from "@/lib/utils";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
+import { TimeSlotPicker } from "@/components/TimeSlotPicker";
 
 interface TeamMember {
   id: string;
@@ -141,7 +142,7 @@ export default function InboxPage() {
     setCreatingAppt(true);
     setFeedback(null);
     try {
-      const startAt = new Date(`${apptDate}T${apptTime}:00`);
+      const startAt = new Date(`${apptDate}T${apptTime}:00+03:00`);
       const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -484,28 +485,23 @@ export default function InboxPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Tarih</label>
-                  <input
-                    type="date"
-                    required
-                    value={apptDate}
-                    onChange={(e) => setApptDate(e.target.value)}
-                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Saat</label>
-                  <input
-                    type="time"
-                    required
-                    value={apptTime}
-                    onChange={(e) => setApptTime(e.target.value)}
-                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs"
-                  />
-                </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Tarih</label>
+                <input
+                  type="date"
+                  required
+                  value={apptDate}
+                  onChange={(e) => setApptDate(e.target.value)}
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs"
+                />
               </div>
+
+              <TimeSlotPicker
+                membershipId={apptMemberId}
+                date={apptDate}
+                selectedTime={apptTime}
+                onSelectTime={setApptTime}
+              />
 
               <button
                 type="submit"

@@ -38,51 +38,120 @@ async function getValidGoogleAccessToken(connectionId: string): Promise<string |
     return null;
   }
 
-  const isExpired = conn.tokenExpiresAt ? conn.tokenExpiresAt.getTime() < Date.now() + 60_000 : false;
-  if (!isExpired) {
-    return decryptSecret(conn.encryptedAccessToken);
-  }
+  try {
+    const isExpired = conn.tokenExpiresAt ? conn.tokenExpiresAt.getTime() < Date.now() + 60_000 : false;
+    if (!isExpired) {
+      return decryptSecret(conn.encryptedAccessToken);
+    }
 
-  if (!conn.encryptedRefreshToken || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return null;
-  }
+    if (!conn.encryptedRefreshToken || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return null;
+    }
 
-  const refreshToken = decryptSecret(conn.encryptedRefreshToken);
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
+    const refreshToken = decryptSecret(conn.encryptedRefreshToken);
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
 
-  if (!res.ok) {
+    if (!res.ok) {
+      await prisma.googleCalendarConnection.update({
+        where: { id: conn.id },
+        data: { status: "ERROR" },
+      });
+      return null;
+    }
+
+    const tokenData = (await res.json()) as { access_token: string; expires_in: number };
     await prisma.googleCalendarConnection.update({
       where: { id: conn.id },
-      data: { status: "ERROR" },
+      data: {
+        encryptedAccessToken: encryptSecret(tokenData.access_token),
+        tokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
+        status: "CONNECTED",
+      },
     });
+
+    return tokenData.access_token;
+  } catch (err) {
+    console.error("[GOOGLE_TOKEN_DECRYPT_OR_REFRESH_ERROR]", err);
     return null;
   }
-
-  const tokenData = (await res.json()) as { access_token: string; expires_in: number };
-  await prisma.googleCalendarConnection.update({
-    where: { id: conn.id },
-    data: {
-      encryptedAccessToken: encryptSecret(tokenData.access_token),
-      tokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-      status: "CONNECTED",
-    },
-  });
-
-  return tokenData.access_token;
 }
 
 export interface ConflictCheckResult {
   hasConflict: boolean;
   reason?: string;
+}
+
+/**
+ * Returns busy intervals (local Takvimo appointments + LIVE Google Calendar freeBusy)
+ * for a given team member within [dayStart, dayEnd].
+ */
+export async function getMemberBusyIntervals(params: {
+  tenantId: string;
+  membershipId: string;
+  dayStart: Date;
+  dayEnd: Date;
+}): Promise<Array<{ start: Date; end: Date; source: "TAKVIMO" | "GOOGLE" }>> {
+  const intervals: Array<{ start: Date; end: Date; source: "TAKVIMO" | "GOOGLE" }> = [];
+
+  const localAppts = await prisma.appointment.findMany({
+    where: {
+      tenantId: params.tenantId,
+      assignedMembershipId: params.membershipId,
+      status: { in: ["PENDING", "CONFIRMED", "RESCHEDULED"] },
+      startAt: { lt: params.dayEnd },
+      endAt: { gt: params.dayStart },
+    },
+    select: { startAt: true, endAt: true },
+  });
+
+  for (const a of localAppts) {
+    intervals.push({ start: a.startAt, end: a.endAt, source: "TAKVIMO" });
+  }
+
+  const gConn = await prisma.googleCalendarConnection.findUnique({
+    where: { membershipId: params.membershipId },
+  });
+
+  if (gConn && gConn.mode === "LIVE" && gConn.status === "CONNECTED") {
+    const accessToken = await getValidGoogleAccessToken(gConn.id);
+    if (accessToken) {
+      const fbRes = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timeMin: params.dayStart.toISOString(),
+          timeMax: params.dayEnd.toISOString(),
+          items: [{ id: gConn.calendarId }],
+        }),
+      });
+      if (fbRes.ok) {
+        const fbData = (await fbRes.json()) as {
+          calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }>;
+        };
+        for (const b of fbData.calendars?.[gConn.calendarId]?.busy ?? []) {
+          intervals.push({
+            start: new Date(b.start),
+            end: new Date(b.end),
+            source: "GOOGLE",
+          });
+        }
+      }
+    }
+  }
+
+  return intervals;
 }
 
 /**

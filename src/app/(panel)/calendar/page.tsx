@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Calendar as CalendarIcon, Plus, X, Clock } from "lucide-react";
 import { formatDateTR, formatTimeTR } from "@/lib/utils";
-import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
+import { HelpBubble } from "@/components/HelpBubble";
+import { TimeSlotPicker } from "@/components/TimeSlotPicker";
 
 interface Member {
   id: string;
@@ -62,7 +63,7 @@ export default function CalendarPage() {
     setError(null);
     setSaving(true);
     try {
-      const startAt = new Date(`${date}T${time}:00`);
+      const startAt = new Date(`${date}T${time}:00+03:00`);
       const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -235,28 +236,22 @@ export default function CalendarPage() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Tarih</label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Saat</label>
-                  <input
-                    type="time"
-                    required
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Tarih</label>
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+                />
               </div>
+              <TimeSlotPicker
+                membershipId={memberId}
+                date={date}
+                selectedTime={time}
+                onSelectTime={setTime}
+              />
               <button
                 type="submit"
                 disabled={saving}
