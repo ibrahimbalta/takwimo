@@ -24,6 +24,7 @@ export function formatTimeTR(date: Date | string): string {
   return new Intl.DateTimeFormat("tr-TR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Istanbul",
   }).format(d);
 }
 
@@ -31,7 +32,8 @@ export function formatDateTR(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
-    month: "short",
+    month: "long",
     year: "numeric",
+    timeZone: "Europe/Istanbul",
   }).format(d);
 }

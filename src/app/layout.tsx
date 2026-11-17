@@ -23,7 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
+    <html lang="tr" translate="no" className="notranslate">
+      <head>
+        <meta name="google" content="notranslate" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-50 text-slate-900`}>
         {children}
       </body>
