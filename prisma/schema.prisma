@@ -1,14 +1,13 @@
-// TAKVIMO Multi-Tenant SaaS Database Schema
-// Local development uses SQLite (file:./dev.db) because Docker/PostgreSQL are not preinstalled.
-// For production deployment, switch provider to "postgresql" and point DATABASE_URL to PostgreSQL 16+.
+// TAKVIMO Multi-Tenant SaaS Database Schema (PostgreSQL / Supabase)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Tenant {
