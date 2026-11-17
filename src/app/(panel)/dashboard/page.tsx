@@ -68,25 +68,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
-          <p className="text-sm text-slate-500">
+      {/* Vibrant Welcome Banner */}
+      <div className="rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-6 sm:p-7 text-white shadow-lg shadow-emerald-900/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <span className="inline-block text-[11px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
+            Günlük Özet
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Hoş Geldiniz!</h1>
+          <p className="text-xs sm:text-sm text-emerald-50">
             WhatsApp konuşmalarınız, ekip takviminiz ve randevu akışınız tek merkezde.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             href="/inbox"
-            className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur border border-white/25 text-white text-xs sm:text-sm font-semibold transition-colors"
           >
-            Gelen Kutusuna Git
+            WhatsApp Kutusu
           </Link>
           <Link
             href="/calendar"
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 text-white text-sm font-semibold shadow-xs hover:opacity-95 transition-opacity"
+            className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 text-xs sm:text-sm font-bold shadow-sm hover:bg-emerald-50 transition-colors"
           >
-            Takvimi Aç
+            + Takvim & Randevu
           </Link>
         </div>
       </div>

@@ -150,18 +150,19 @@ export default function CalendarPage() {
               {items.map((appt) => (
                 <div
                   key={appt.id}
-                  className="p-3 rounded-xl border border-slate-200 bg-white hover:border-violet-300 transition-colors"
+                  style={{ borderLeftColor: appt.assignedMembership.colorHex ?? "#059669" }}
+                  className="p-3.5 rounded-xl border border-slate-200 border-l-4 bg-white hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-violet-700">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                       <Clock className="w-3.5 h-3.5" />
                       {formatTimeTR(appt.startAt)} - {formatTimeTR(appt.endAt)}
                     </span>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
                       {appt.assignedMembership.user.name}
                     </span>
                   </div>
-                  <p className="font-semibold text-sm text-slate-900 mt-1.5">{appt.title}</p>
+                  <p className="font-semibold text-sm text-slate-900 mt-2">{appt.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{appt.contact.name}</p>
                 </div>
               ))}

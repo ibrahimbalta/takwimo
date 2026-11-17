@@ -27,16 +27,22 @@ interface SessionInfo {
   tenantName: string;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: "İşletme Sahibi",
+  ADMIN: "Yönetici",
+  STAFF: "Personel",
+};
+
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "WhatsApp Kutusu", icon: MessageSquare },
-  { href: "/calendar", label: "Takvim", icon: Calendar },
-  { href: "/appointments", label: "Randevular", icon: CalendarCheck2 },
-  { href: "/team", label: "Ekip", icon: Users },
-  { href: "/automations", label: "Otomasyonlar", icon: Zap },
-  { href: "/integrations", label: "Entegrasyonlar", icon: Plug },
-  { href: "/settings", label: "Ayarlar", icon: Settings },
-  { href: "/billing", label: "Abonelik", icon: CreditCard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-emerald-600 bg-emerald-100/80" },
+  { href: "/inbox", label: "WhatsApp Kutusu", icon: MessageSquare, color: "text-green-600 bg-green-100/80" },
+  { href: "/calendar", label: "Takvim", icon: Calendar, color: "text-violet-600 bg-violet-100/80" },
+  { href: "/appointments", label: "Randevular", icon: CalendarCheck2, color: "text-blue-600 bg-blue-100/80" },
+  { href: "/team", label: "Ekip", icon: Users, color: "text-indigo-600 bg-indigo-100/80" },
+  { href: "/automations", label: "Otomasyonlar", icon: Zap, color: "text-amber-600 bg-amber-100/80" },
+  { href: "/integrations", label: "Entegrasyonlar", icon: Plug, color: "text-teal-600 bg-teal-100/80" },
+  { href: "/settings", label: "Ayarlar", icon: Settings, color: "text-slate-600 bg-slate-200/70" },
+  { href: "/billing", label: "Abonelik", icon: CreditCard, color: "text-rose-600 bg-rose-100/80" },
 ];
 
 const MOBILE_PRIMARY = [
@@ -83,19 +89,19 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 z-30">
-        <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+        <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/60 to-white">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
             T
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-slate-900 tracking-tight leading-none">TAKVIMO</span>
-            <span className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[150px]">
+            <span className="text-[11px] text-emerald-700 font-medium mt-0.5 truncate max-w-[150px]">
               {session?.tenantName ?? "Yükleniyor..."}
             </span>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -104,13 +110,20 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all",
                   active
-                    ? "bg-violet-50 text-violet-700 shadow-xs"
+                    ? "bg-gradient-to-r from-emerald-50 to-teal-50/70 text-emerald-900 border border-emerald-200/80 shadow-2xs"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
-                <Icon className={cn("w-4 h-4 shrink-0", active ? "text-violet-600" : "text-slate-400")} />
+                <span
+                  className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform",
+                    active ? item.color : "bg-slate-100 text-slate-500"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                </span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -118,10 +131,17 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-3 border-t border-slate-100">
-          <div className="px-3 py-2 rounded-xl bg-slate-50 flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-slate-800 truncate">{session?.name ?? "..."}</p>
-              <p className="text-[11px] text-slate-500 truncate">{session?.role ?? "Üye"}</p>
+          <div className="px-3 py-2.5 rounded-xl bg-gradient-to-r from-slate-50 to-emerald-50/40 border border-slate-200/70 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                {session?.name?.slice(0, 1).toUpperCase() ?? "T"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-800 truncate">{session?.name ?? "..."}</p>
+                <p className="text-[11px] text-emerald-700 font-medium truncate">
+                  {ROLE_LABELS[session?.role ?? ""] ?? session?.role ?? "Üye"}
+                </p>
+              </div>
             </div>
             <button
               onClick={handleLogout}
