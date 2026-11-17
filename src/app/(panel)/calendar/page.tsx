@@ -64,7 +64,7 @@ export default function CalendarPage() {
     setSaving(true);
     try {
       const startAt = new Date(`${date}T${time}:00+03:00`);
-      const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
+      const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
       const res = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

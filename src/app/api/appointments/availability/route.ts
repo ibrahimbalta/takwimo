@@ -50,12 +50,12 @@ export async function GET(req: NextRequest) {
 
     const slots: Array<{ time: string; available: boolean; source?: string }> = [];
 
-    for (let mins = startTotalMin; mins + 60 <= endTotalMin; mins += 60) {
+    for (let mins = startTotalMin; mins + 30 <= endTotalMin; mins += 30) {
       const hh = String(Math.floor(mins / 60)).padStart(2, "0");
       const mm = String(mins % 60).padStart(2, "0");
       const time = `${hh}:${mm}`;
       const slotStart = new Date(`${dateStr}T${time}:00+03:00`);
-      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+      const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
 
       const conflict = busyIntervals.find(
         (b) => b.start < slotEnd && b.end > slotStart
