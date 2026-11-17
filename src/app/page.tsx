@@ -68,25 +68,25 @@ export default async function HomePage() {
   const session = await getSession();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col overflow-x-hidden">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-emerald-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F4F7F6] text-slate-900 flex flex-col overflow-x-hidden">
+      {/* Floating Glass Pill Navbar */}
+      <div className="sticky top-3 z-30 px-3 sm:px-6">
+        <header className="max-w-6xl mx-auto h-15 px-4 sm:px-6 rounded-full bg-white/85 backdrop-blur-xl border border-emerald-200/70 shadow-lg shadow-slate-950/5 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-slate-950 font-black text-sm shadow-sm">
               T
             </div>
-            <div>
-              <span className="font-bold text-slate-900 tracking-tight text-lg leading-none block">
+            <div className="flex items-baseline gap-2">
+              <span className="font-extrabold text-slate-950 tracking-tight text-base">
                 TAKVIMO
               </span>
-              <span className="text-[10px] text-emerald-700 font-semibold">
-                WhatsApp + Google Calendar
+              <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                OS
               </span>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
+          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-600">
             <a href="#nedir" className="hover:text-emerald-700 transition-colors">
               Proje Nedir?
             </a>
@@ -102,60 +102,57 @@ export default async function HomePage() {
             <a href="#fiyatlandirma" className="hover:text-emerald-700 transition-colors">
               Fiyatlandırma
             </a>
-            <a href="#sss" className="hover:text-emerald-700 transition-colors">
-              SSS
-            </a>
           </nav>
 
           <div className="flex items-center gap-2">
             {session ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs sm:text-sm font-semibold shadow-sm hover:opacity-95 transition-opacity"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-950 text-emerald-400 text-xs sm:text-sm font-bold shadow-sm hover:bg-slate-900 transition-colors"
               >
                 <span>Panele Git</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
+                  className="hidden sm:inline-flex px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
                 >
                   Giriş Yap
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs sm:text-sm font-semibold shadow-sm hover:opacity-95 transition-opacity"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-950 text-emerald-400 text-xs sm:text-sm font-bold shadow-sm hover:bg-slate-900 transition-colors"
                 >
                   <span>Ücretsiz Dene</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </>
             )}
             <LandingMobileMenu isLoggedIn={Boolean(session)} />
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Hero Section with Background Visual & Animated Floating Badges */}
-      <section className="relative overflow-hidden bg-white border-b border-slate-200">
+      {/* Millennium Hero Section */}
+      <section className="relative overflow-hidden pt-8 pb-16 md:pt-14 md:pb-24">
         <img
           src="/images/hero-bg.svg"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none opacity-90"
         />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-14 md:py-22 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Randevu Odaklı KOBİ&apos;ler İçin Tek Merkez</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950 text-emerald-300 text-[11px] font-mono font-bold tracking-wide shadow-md">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>TAKVIMO // WHATSAPP + GOOGLE CALENDAR OS</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.12]">
+            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black text-slate-950 tracking-[-0.03em] leading-[1.06]">
               Tek gelen kutusu.{" "}
-              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 bg-clip-text text-transparent">
                 Tek takvim.
               </span>{" "}
               Tek ekip.
@@ -163,47 +160,54 @@ export default async function HomePage() {
 
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
               <strong>TAKVIMO</strong>, müşterileriyle WhatsApp üzerinden randevu planlayan
-              işletmeler için geliştirilmiş bir <strong>WhatsApp Business + Google Calendar</strong>{" "}
-              koordinasyon platformudur. Tüm konuşmaları tek panelde toplayın, ekibinizin takvimini
-              senkronize edin ve otomatik hatırlatmalarla randevu iptallerini azaltın.
+              işletmeler için tasarlanmış yeni nesil koordinasyon merkezidir. Tüm konuşmaları
+              tek merkezde toplayın, ekibinizin Google Calendar takvimini anlık senkronize edin.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <Link
                 href={session ? "/dashboard" : "/login"}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold shadow-md shadow-emerald-600/20 hover:scale-[1.01] transition-all"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-950 text-emerald-400 text-sm font-bold shadow-xl shadow-slate-950/15 hover:bg-slate-900 hover:-translate-y-0.5 transition-all"
               >
                 <span>{session ? "Panele Devam Et" : "Canlı Demo ile Hemen İncele"}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#calisma-mantigi"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-white/95 border border-slate-200 text-slate-700 text-sm font-semibold hover:border-emerald-300 hover:text-emerald-800 transition-colors"
+                className="inline-flex items-center justify-center px-6 py-3.5 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-sm font-bold hover:border-emerald-400 transition-colors"
               >
                 Çalışma Mantığını Gör
               </a>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200/80">
-              <div>
-                <p className="text-xl sm:text-2xl font-bold text-emerald-700">0₺</p>
-                <p className="text-xs text-slate-500">Ekip üyesi başı ücret</p>
+            <div className="grid grid-cols-3 gap-3 pt-4">
+              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
+                <p className="text-xl sm:text-2xl font-black text-emerald-600">0₺</p>
+                <p className="text-[11px] font-medium text-slate-500">Kişi başı ücret</p>
               </div>
-              <div>
-                <p className="text-xl sm:text-2xl font-bold text-emerald-700">2 Yönlü</p>
-                <p className="text-xs text-slate-500">Google Calendar Sync</p>
+              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
+                <p className="text-xl sm:text-2xl font-black text-slate-900">30 dk</p>
+                <p className="text-[11px] font-medium text-slate-500">Akıllı slot seçimi</p>
               </div>
-              <div>
-                <p className="text-xl sm:text-2xl font-bold text-emerald-700">%100</p>
-                <p className="text-xs text-slate-500">Resmî Meta API & KVKK</p>
+              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
+                <p className="text-xl sm:text-2xl font-black text-teal-600">%100</p>
+                <p className="text-[11px] font-medium text-slate-500">Meta API & KVKK</p>
               </div>
             </div>
           </div>
 
-          {/* Right: High-Impact Product Showcase Visual with Animated Badges */}
+          {/* Right: Dark-Obsidian Bezel Product Showcase */}
           <div className="lg:col-span-6">
-            <div className="relative rounded-3xl border border-emerald-200/80 bg-white p-3 shadow-2xl shadow-emerald-900/10">
-              <div className="overflow-hidden rounded-2xl border border-slate-100 bg-emerald-50/40">
+            <div className="relative rounded-[30px] bg-slate-950 p-2.5 sm:p-3 shadow-2xl shadow-emerald-950/20 ring-1 ring-emerald-400/30">
+              <div className="flex items-center gap-1.5 px-3 pb-2.5 pt-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+                <span className="ml-2 text-[10px] font-mono text-slate-400">
+                  takwimo.vercel.app // live-sync
+                </span>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-slate-800 bg-white">
                 <img
                   src="/images/hero-dashboard.jpg"
                   alt="TAKVIMO WhatsApp Business ve Google Calendar Birleşik Paneli"
@@ -212,19 +216,19 @@ export default async function HomePage() {
               </div>
 
               {/* Animated Floating Top Badge */}
-              <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur border border-emerald-200 shadow-lg absolute -top-4 -left-4 animate-float-slow">
+              <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur border border-emerald-200 shadow-xl absolute -top-5 -left-5 animate-float-slow">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-slate-800">
+                <span className="text-xs font-bold text-slate-900">
                   WhatsApp → Google Calendar Anlık Senkron
                 </span>
               </div>
 
               {/* Animated Floating Bottom Badge */}
-              <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-emerald-950 text-white shadow-xl absolute -bottom-4 -right-3 border border-emerald-800 animate-float-delayed">
-                <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-xl absolute -bottom-5 -right-3 animate-float-delayed">
+                <CheckCheck className="w-4 h-4 shrink-0" />
                 <div className="text-[11px] leading-tight">
-                  <p className="font-bold">Otomatik Onay & Hatırlatma</p>
-                  <p className="text-emerald-300">Çakışma kontrolü aktif</p>
+                  <p className="font-extrabold">Otomatik Onay & Hatırlatma</p>
+                  <p className="font-semibold opacity-80">Çakışma kontrolü aktif</p>
                 </div>
               </div>
             </div>

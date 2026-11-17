@@ -68,27 +68,30 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Vibrant Welcome Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-6 sm:p-7 text-white shadow-lg shadow-emerald-900/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <span className="inline-block text-[11px] font-bold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
-            Günlük Özet
+      {/* Millennium Dark-Obsidian + Bioluminescent Emerald Command Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 sm:p-8 text-white shadow-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+        <div className="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-1.5">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Canlı Komuta Merkezi
           </span>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Hoş Geldiniz!</h1>
-          <p className="text-xs sm:text-sm text-emerald-50">
-            WhatsApp konuşmalarınız, ekip takviminiz ve randevu akışınız tek merkezde.
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Hoş Geldiniz!</h1>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+            WhatsApp konuşmalarınız, ekip takviminiz ve randevu akışınız tek akıllı merkezde.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="relative z-10 flex items-center gap-2.5 flex-wrap">
           <Link
             href="/inbox"
-            className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur border border-white/25 text-white text-xs sm:text-sm font-semibold transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur border border-white/15 text-white text-xs sm:text-sm font-semibold transition-colors"
           >
             WhatsApp Kutusu
           </Link>
           <Link
             href="/calendar"
-            className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 text-xs sm:text-sm font-bold shadow-sm hover:bg-emerald-50 transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-500/25 hover:opacity-95 transition-opacity"
           >
             + Takvim & Randevu
           </Link>
