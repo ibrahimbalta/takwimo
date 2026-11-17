@@ -29,8 +29,13 @@ export async function GET(req: NextRequest) {
       throw new ApiError(404, "Ekip üyesi bulunamadı.");
     }
 
-    const startHour = Number((tenant?.workStartHour ?? "09:00").split(":")[0]) || 9;
-    const endHour = Number((tenant?.workEndHour ?? "18:00").split(":")[0]) || 18;
+    const workStart = tenant?.workStartHour ?? "09:00";
+    const workEnd = tenant?.workEndHour ?? "18:00";
+
+    const [sH, sM] = workStart.split(":").map(Number);
+    const [eH, eM] = workEnd.split(":").map(Number);
+    const startTotalMin = (Number.isFinite(sH) ? sH : 9) * 60 + (Number.isFinite(sM) ? sM : 0);
+    const endTotalMin = (Number.isFinite(eH) ? eH : 18) * 60 + (Number.isFinite(eM) ? eM : 0);
 
     // Interpret date in Europe/Istanbul (+03:00)
     const dayStart = new Date(`${dateStr}T00:00:00+03:00`);
@@ -45,9 +50,10 @@ export async function GET(req: NextRequest) {
 
     const slots: Array<{ time: string; available: boolean; source?: string }> = [];
 
-    for (let h = startHour; h < endHour; h++) {
-      const hh = String(h).padStart(2, "0");
-      const time = `${hh}:00`;
+    for (let mins = startTotalMin; mins + 60 <= endTotalMin; mins += 60) {
+      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+      const mm = String(mins % 60).padStart(2, "0");
+      const time = `${hh}:${mm}`;
       const slotStart = new Date(`${dateStr}T${time}:00+03:00`);
       const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
@@ -62,7 +68,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ slots });
+    return NextResponse.json({
+      slots,
+      workHours: { start: workStart, end: workEnd },
+    });
   } catch (err) {
     return handleApiError(err);
   }

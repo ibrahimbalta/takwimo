@@ -21,6 +21,7 @@ export function TimeSlotPicker({
   onSelectTime: (time: string) => void;
 }) {
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [workHours, setWorkHours] = useState<{ start: string; end: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function TimeSlotPicker({
         if (!active) return;
         const nextSlots = (data.slots ?? []) as Slot[];
         setSlots(nextSlots);
+        if (data.workHours) setWorkHours(data.workHours);
 
         // If current selectedTime isn't in available slots, pick first green slot
         const currentOk = nextSlots.some((s) => s.time === selectedTime && s.available);
@@ -54,11 +56,16 @@ export function TimeSlotPicker({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-[11px] font-medium text-slate-600 flex items-center gap-1">
           <Clock className="w-3 h-3 text-emerald-600" />
           Canlı Müsaitlik (Yeşil: Boş • Kırmızı: Dolu)
         </span>
+        {workHours && (
+          <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+            Mesai: {workHours.start} - {workHours.end}
+          </span>
+        )}
       </div>
 
       {loading ? (
