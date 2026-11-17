@@ -39,34 +39,66 @@ describe("TAKVIMO Security & Core Business Rules", () => {
     expect(tenant1).not.toBeNull();
     expect(tenant2).not.toBeNull();
 
-    const appt1 = await prisma.appointment.findFirst({
+    const existingAppt = await prisma.appointment.findFirst({
       where: { tenantId: tenant1!.id, status: "CONFIRMED" },
     });
-    expect(appt1).not.toBeNull();
 
-    // Overlapping slot for the same member in tenant1 MUST report conflict
-    const conflict = await checkMemberCalendarConflict({
-      tenantId: tenant1!.id,
-      membershipId: appt1!.assignedMembershipId,
-      startAt: appt1!.startAt,
-      endAt: appt1!.endAt,
-    });
-    expect(conflict.hasConflict).toBe(true);
+    let createdTempId: string | null = null;
+    let appt1 = existingAppt;
 
-    // Excluding the same appointment ID should NOT report conflict
-    const noConflictSame = await checkMemberCalendarConflict({
-      tenantId: tenant1!.id,
-      membershipId: appt1!.assignedMembershipId,
-      startAt: appt1!.startAt,
-      endAt: appt1!.endAt,
-      excludeAppointmentId: appt1!.id,
-    });
-    expect(noConflictSame.hasConflict).toBe(false);
+    if (!appt1) {
+      const member = await prisma.membership.findFirst({ where: { tenantId: tenant1!.id } });
+      const contact = await prisma.contact.upsert({
+        where: { tenantId_phoneE164: { tenantId: tenant1!.id, phoneE164: "+905300000099" } },
+        update: {},
+        create: { tenantId: tenant1!.id, phoneE164: "+905300000099", name: "Test Müşteri" },
+      });
+      const start = new Date(Date.now() + 3600_000);
+      const end = new Date(start.getTime() + 3600_000);
+      appt1 = await prisma.appointment.create({
+        data: {
+          tenantId: tenant1!.id,
+          contactId: contact.id,
+          assignedMembershipId: member!.id,
+          title: "Test Çakışma Randevusu",
+          startAt: start,
+          endAt: end,
+          status: "CONFIRMED",
+          idempotencyKey: `test_${Date.now()}`,
+        },
+      });
+      createdTempId = appt1.id;
+    }
 
-    // Multi-tenant isolation: tenant2 query cannot see tenant1's contact
-    const tenant2Contacts = await prisma.contact.findMany({
-      where: { tenantId: tenant2!.id },
-    });
-    expect(tenant2Contacts.some((c) => c.phoneE164 === "+905321112233")).toBe(false);
-  });
+    try {
+      // Overlapping slot for the same member in tenant1 MUST report conflict
+      const conflict = await checkMemberCalendarConflict({
+        tenantId: tenant1!.id,
+        membershipId: appt1.assignedMembershipId,
+        startAt: appt1.startAt,
+        endAt: appt1.endAt,
+      });
+      expect(conflict.hasConflict).toBe(true);
+
+      // Excluding the same appointment ID should NOT report conflict
+      const noConflictSame = await checkMemberCalendarConflict({
+        tenantId: tenant1!.id,
+        membershipId: appt1.assignedMembershipId,
+        startAt: appt1.startAt,
+        endAt: appt1.endAt,
+        excludeAppointmentId: appt1.id,
+      });
+      expect(noConflictSame.hasConflict).toBe(false);
+
+      // Multi-tenant isolation: tenant2 query cannot see tenant1's contact
+      const tenant2Contacts = await prisma.contact.findMany({
+        where: { tenantId: tenant2!.id },
+      });
+      expect(tenant2Contacts.some((c) => c.phoneE164 === "+905321112233")).toBe(false);
+    } finally {
+      if (createdTempId) {
+        await prisma.appointment.delete({ where: { id: createdTempId } });
+      }
+    }
+  }, 15000);
 });

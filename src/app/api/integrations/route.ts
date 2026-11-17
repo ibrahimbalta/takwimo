@@ -36,14 +36,23 @@ export async function GET() {
       ? buildGoogleOAuthUrl(`${session.tenantId}:${session.membershipId}`)
       : null;
 
+    const metaAppId = process.env.META_APP_ID ?? null;
+    const metaConfigId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID ?? null;
+    const metaAppSecret = process.env.META_APP_SECRET ?? null;
+
     return NextResponse.json({
       whatsapp,
       googleConnections,
       googleOAuthConfigured: googleConfigured,
       googleOAuthUrl,
       metaWebhookConfigured: Boolean(
-        process.env.META_APP_SECRET && process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        metaAppSecret && process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
       ),
+      metaEmbeddedSignup: {
+        configured: Boolean(metaAppId && metaAppSecret && metaConfigId),
+        appId: metaAppId,
+        configId: metaConfigId,
+      },
     });
   } catch (err) {
     return handleApiError(err);
