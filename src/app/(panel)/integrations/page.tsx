@@ -13,6 +13,7 @@ import {
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
 
 interface IntegrationsData {
+  role?: string;
   whatsapp: {
     displayPhone: string;
     mode: "DEMO" | "LIVE";
@@ -212,13 +213,15 @@ export default function IntegrationsPage() {
             İşletmenizin WhatsApp numarasını ve ekibinizin Google Takvimlerini tek tıkla bağlayın.
           </p>
         </div>
-        <button
-          onClick={clearDemoData}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100 self-start"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Demo Verilerini Temizle
-        </button>
+        {data?.role !== "STAFF" && (
+          <button
+            onClick={clearDemoData}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100 self-start"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Demo Verilerini Temizle
+          </button>
+        )}
       </div>
 
       <PageGuideBanner
@@ -237,8 +240,9 @@ export default function IntegrationsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* WhatsApp Business Cloud API (One-Click Embedded Signup + Advanced Manual) */}
+      <div className={`grid grid-cols-1 ${data?.role !== "STAFF" ? "lg:grid-cols-2" : ""} gap-6`}>
+        {/* WhatsApp Business Cloud API — Only visible to OWNER / ADMIN */}
+        {data?.role !== "STAFF" && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-3">
@@ -358,6 +362,7 @@ export default function IntegrationsPage() {
             </form>
           </details>
         </div>
+        )}
 
         {/* Google Calendar OAuth 2.0 */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">

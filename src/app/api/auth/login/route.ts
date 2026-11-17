@@ -60,11 +60,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (activeMembership.tenant.isSuspended && !user.isSuperAdmin) {
+      return NextResponse.json(
+        { error: "İşletme hesabınız askıya alınmıştır. Lütfen TAKVIMO yöneticisi ile iletişime geçin." },
+        { status: 403 }
+      );
+    }
+
     await setSessionCookie({
       userId: user.id,
       tenantId: activeMembership.tenantId,
       membershipId: activeMembership.id,
       role: activeMembership.role as TenantRole,
+      isSuperAdmin: user.isSuperAdmin,
       email: user.email,
       name: user.name,
       tenantName: activeMembership.tenant.name,

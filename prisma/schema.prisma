@@ -19,6 +19,7 @@ model Tenant {
   workEndHour       String   @default("18:00")
   planTier          String   @default("STARTER") // STARTER | PRO
   dataRetentionDays Int      @default(365)
+  isSuspended       Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -41,6 +42,7 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
+  isSuperAdmin Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

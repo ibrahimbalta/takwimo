@@ -34,6 +34,14 @@ export async function requireRole(allowedRoles: TenantRole[]): Promise<SessionPa
   return session;
 }
 
+export async function requireSuperAdmin(): Promise<SessionPayload> {
+  const session = await requireAuth();
+  if (!session.isSuperAdmin) {
+    throw new ApiError(403, "Bu alan yalnızca SaaS Platform Yöneticisi içindir.", "FORBIDDEN");
+  }
+  return session;
+}
+
 export function handleApiError(err: unknown): NextResponse {
   if (err instanceof ApiError) {
     return NextResponse.json(

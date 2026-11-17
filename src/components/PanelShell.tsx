@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,25 +25,27 @@ interface SessionInfo {
   name: string;
   email: string;
   role: string;
+  isSuperAdmin?: boolean;
   tenantName: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
   OWNER: "İşletme Sahibi",
   ADMIN: "Yönetici",
-  STAFF: "Personel",
+  STAFF: "Doktor / Personel",
 };
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-emerald-600 bg-emerald-100/80" },
-  { href: "/inbox", label: "WhatsApp Kutusu", icon: MessageSquare, color: "text-green-600 bg-green-100/80" },
-  { href: "/calendar", label: "Takvim", icon: Calendar, color: "text-violet-600 bg-violet-100/80" },
-  { href: "/appointments", label: "Randevular", icon: CalendarCheck2, color: "text-blue-600 bg-blue-100/80" },
-  { href: "/team", label: "Ekip", icon: Users, color: "text-indigo-600 bg-indigo-100/80" },
-  { href: "/automations", label: "Otomasyonlar", icon: Zap, color: "text-amber-600 bg-amber-100/80" },
-  { href: "/integrations", label: "Entegrasyonlar", icon: Plug, color: "text-teal-600 bg-teal-100/80" },
-  { href: "/settings", label: "Ayarlar", icon: Settings, color: "text-slate-600 bg-slate-200/70" },
-  { href: "/billing", label: "Abonelik", icon: CreditCard, color: "text-rose-600 bg-rose-100/80" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-emerald-600 bg-emerald-100/80", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/inbox", label: "WhatsApp Kutusu", icon: MessageSquare, color: "text-green-600 bg-green-100/80", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/calendar", label: "Takvim", icon: Calendar, color: "text-violet-600 bg-violet-100/80", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/appointments", label: "Randevular", icon: CalendarCheck2, color: "text-blue-600 bg-blue-100/80", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/team", label: "Ekip", icon: Users, color: "text-indigo-600 bg-indigo-100/80", roles: ["OWNER", "ADMIN"] },
+  { href: "/automations", label: "Otomasyonlar", icon: Zap, color: "text-amber-600 bg-amber-100/80", roles: ["OWNER", "ADMIN"] },
+  { href: "/integrations", label: "Entegrasyonlar", icon: Plug, color: "text-teal-600 bg-teal-100/80", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/settings", label: "Ayarlar", icon: Settings, color: "text-slate-600 bg-slate-200/70", roles: ["OWNER", "ADMIN"] },
+  { href: "/billing", label: "Abonelik", icon: CreditCard, color: "text-rose-600 bg-rose-100/80", roles: ["OWNER", "ADMIN"] },
+  { href: "/super-admin", label: "SaaS Yönetimi", icon: ShieldCheck, color: "text-emerald-700 bg-emerald-100", superAdminOnly: true, roles: ["OWNER", "ADMIN", "STAFF"] },
 ];
 
 const MOBILE_PRIMARY = [
@@ -85,6 +88,14 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if ("superAdminOnly" in item && item.superAdminOnly) {
+      return Boolean(session?.isSuperAdmin);
+    }
+    const userRole = session?.role ?? "STAFF";
+    return item.roles.includes(userRole);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
@@ -102,7 +113,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
@@ -233,7 +244,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <div className="flex-1 py-4 space-y-1 overflow-y-auto">
-              {NAV_ITEMS.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
                 return (

@@ -41,6 +41,7 @@ export async function GET() {
     const metaAppSecret = process.env.META_APP_SECRET ?? null;
 
     return NextResponse.json({
+      role: session.role,
       whatsapp,
       googleConnections,
       googleOAuthConfigured: googleConfigured,

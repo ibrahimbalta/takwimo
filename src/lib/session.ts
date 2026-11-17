@@ -10,6 +10,7 @@ export interface SessionPayload {
   tenantId: string;
   membershipId: string;
   role: TenantRole;
+  isSuperAdmin?: boolean;
   email: string;
   name: string;
   tenantName: string;
@@ -45,6 +46,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       tenantId: String(payload.tenantId),
       membershipId: String(payload.membershipId),
       role: payload.role as TenantRole,
+      isSuperAdmin: Boolean(payload.isSuperAdmin),
       email: String(payload.email ?? ""),
       name: String(payload.name ?? ""),
       tenantName: String(payload.tenantName ?? ""),
