@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { signSessionToken } from "@/lib/session";
 import { GET as appointmentsGET, POST as appointmentsPOST } from "@/app/api/appointments/route";
 import { PATCH as appointmentPATCH } from "@/app/api/appointments/[id]/route";
+import { POST as publicBookingPOST } from "@/app/api/public/booking/[slug]/route";
+import { GET as conversationMessagesGET } from "@/app/api/conversations/[id]/messages/route";
 
 let mockedCookieToken: string | undefined = undefined;
 
@@ -91,6 +93,81 @@ describe("FAZ 2 / Modül B — Takvim & Randevu Yönetimi", () => {
       createdIds.push(apptId);
       expect(winnerJson.googleSync?.synced).toBe(true);
 
+      // 1b. Overlapping interval with DIFFERENT start time (10:15 - 10:45 overlaps 10:00 - 10:30) -> must conflict (409)
+      const overlapDiffStartRes = await appointmentsPOST(
+        new NextRequest("http://localhost:3000/api/appointments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contactName: "Takvim Test Müşteri",
+            contactPhoneE164: testPhone,
+            assignedMembershipId: owner.id,
+            title: "Örtüşen Ara Saat Randevusu",
+            startAt: new Date("2027-06-15T10:15:00+03:00").toISOString(),
+            endAt: new Date("2027-06-15T10:45:00+03:00").toISOString(),
+          }),
+        })
+      );
+      expect(overlapDiffStartRes.status).toBe(409);
+
+      // 1c. Concurrent Panel POST + Public Online Booking POST on same slot (14:00) -> exactly 1 succeeds (201), 1 conflicts (409)
+      const panel14Req = new NextRequest("http://localhost:3000/api/appointments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          contactName: "Takvim Test Müşteri",
+          contactPhoneE164: testPhone,
+          assignedMembershipId: owner.id,
+          title: "Panel 14:00",
+          startAt: new Date("2027-06-15T14:00:00+03:00").toISOString(),
+          endAt: new Date("2027-06-15T14:30:00+03:00").toISOString(),
+        }),
+      });
+      const public14Req = new NextRequest("http://localhost:3000/api/public/booking/klinik-nova", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": `race-test-${Date.now()}`,
+        },
+        body: JSON.stringify({
+          membershipId: owner.id,
+          date: "2027-06-15",
+          time: "14:00",
+          contactName: "Takvim Test Müşteri",
+          contactPhone: testPhone,
+          customTitle: "Online 14:00",
+          kvkkAccepted: true,
+        }),
+      });
+      const [pRes, pubRes] = await Promise.all([
+        appointmentsPOST(panel14Req),
+        publicBookingPOST(public14Req, { params: Promise.resolve({ slug: "klinik-nova" }) }),
+      ]);
+      expect([pRes.status, pubRes.status].sort((a, b) => a - b)).toEqual([201, 409]);
+      const raceWinner = pRes.status === 201 ? await pRes.json() : await pubRes.json();
+      if (raceWinner?.appointment?.id) createdIds.push(raceWinner.appointment.id);
+
+      // 1d. WhatsApp Inbox conversation <-> Calendar sync check: contactAppointments shows our appointment
+      const testContact = await prisma.contact.findUnique({
+        where: { tenantId_phoneE164: { tenantId: tenant!.id, phoneE164: testPhone } },
+      });
+      if (testContact) {
+        const conv = await prisma.conversation.findFirst({
+          where: { tenantId: tenant!.id, contactId: testContact.id },
+        });
+        if (conv) {
+          const msgRes = await conversationMessagesGET(
+            new NextRequest(`http://localhost:3000/api/conversations/${conv.id}/messages`),
+            { params: Promise.resolve({ id: conv.id }) }
+          );
+          expect(msgRes.status).toBe(200);
+          const msgJson = await msgRes.json();
+          expect(
+            msgJson.contactAppointments.some((a: { id: string }) => createdIds.includes(a.id))
+          ).toBe(true);
+        }
+      }
+
       // 2. Different member at the EXACT SAME time -> must succeed (201)
       if (secondMember) {
         const diffMemberReq = new NextRequest("http://localhost:3000/api/appointments", {
@@ -160,10 +237,18 @@ describe("FAZ 2 / Modül B — Takvim & Randevu Yönetimi", () => {
       if (createdIds.length > 0) {
         await prisma.appointment.deleteMany({ where: { id: { in: createdIds } } });
       }
-      await prisma.contact.deleteMany({ where: { tenantId: tenant!.id, phoneE164: testPhone } });
+      const cleanupContact = await prisma.contact.findUnique({
+        where: { tenantId_phoneE164: { tenantId: tenant!.id, phoneE164: testPhone } },
+      });
+      if (cleanupContact) {
+        await prisma.conversation.deleteMany({
+          where: { tenantId: tenant!.id, contactId: cleanupContact.id },
+        });
+        await prisma.contact.delete({ where: { id: cleanupContact.id } });
+      }
       mockedCookieToken = undefined;
     }
-  }, 30000);
+  }, 45000);
 
   it("enforces STAFF own-calendar scope on GET and POST /api/appointments", async () => {
     const staff = await prisma.membership.findFirst({

@@ -134,13 +134,29 @@ function getMonthGridDays(dateStr: string): Array<{ date: string; inMonth: boole
   return days;
 }
 
-function buildWorkSlots(startHHMM: string, endHHMM: string): string[] {
-  const [sH, sM] = startHHMM.split(":").map(Number);
-  const [eH, eM] = endHHMM.split(":").map(Number);
-  const startMin = (Number.isFinite(sH) ? sH : 9) * 60 + (Number.isFinite(sM) ? sM : 0);
-  const endMin = (Number.isFinite(eH) ? eH : 18) * 60 + (Number.isFinite(eM) ? eM : 0);
+function toIstanbulMinutes(iso: string): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Istanbul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const hh = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const mm = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return hh * 60 + mm;
+}
+
+function parseHHMMToMin(hhmm: string, fallbackMin: number): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (!Number.isFinite(h)) return fallbackMin;
+  return h * 60 + (Number.isFinite(m) ? m : 0);
+}
+
+const PX_PER_MIN = 2; // 30-minute row = 60px
+
+function buildBoardSlots(startMin: number, endMin: number): string[] {
   const slots: string[] = [];
-  for (let mins = startMin; mins + 30 <= endMin; mins += 30) {
+  for (let mins = startMin; mins < endMin; mins += 30) {
     slots.push(`${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`);
   }
   return slots.length > 0 ? slots : ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"];
@@ -555,10 +571,25 @@ export default function CalendarPage() {
     return selectedMember === "ALL" ? members : members.filter((m) => m.id === selectedMember);
   }, [members, selectedMember, userRole, currentMembershipId]);
 
-  const boardSlots = useMemo(
-    () => buildWorkSlots(workHours.start, workHours.end),
-    [workHours.start, workHours.end]
-  );
+  const boardTimeline = useMemo(() => {
+    let startMin = parseHHMMToMin(workHours.start, 9 * 60);
+    let endMin = parseHHMMToMin(workHours.end, 18 * 60);
+    // Expand bounds if any appointment on anchorDate starts earlier or ends later (never hide appointments!)
+    const dayAppts = visibleAppointments.filter((a) => toIstanbulDateKey(a.startAt) === anchorDate);
+    for (const a of dayAppts) {
+      const sMin = toIstanbulMinutes(a.startAt);
+      const eMin = toIstanbulMinutes(a.endAt);
+      if (sMin < startMin) startMin = Math.floor(sMin / 30) * 30;
+      if (eMin > endMin) endMin = Math.min(24 * 60, Math.ceil(eMin / 30) * 30);
+    }
+    const slots = buildBoardSlots(startMin, endMin);
+    return {
+      startMin,
+      endMin: startMin + slots.length * 30,
+      slots,
+      totalHeightPx: slots.length * 30 * PX_PER_MIN,
+    };
+  }, [workHours.start, workHours.end, visibleAppointments, anchorDate]);
 
   const todayKey = getTodayIstanbul();
   const monthGrid = useMemo(() => getMonthGridDays(anchorDate), [anchorDate]);
@@ -851,64 +882,105 @@ export default function CalendarPage() {
                   </div>
                 ))}
 
-                {boardSlots.map((slotTime) => (
-                  <React.Fragment key={slotTime}>
-                    <div className="sticky left-0 z-10 px-2 py-3 border-b border-r border-slate-100 text-[11px] font-semibold text-slate-500 text-center bg-slate-50/95">
-                      {slotTime}
-                    </div>
-                    {visibleMembers.map((m) => {
-                      const slotAppts = visibleAppointments.filter(
-                        (a) =>
-                          a.assignedMembership.id === m.id &&
-                          toIstanbulDateKey(a.startAt) === anchorDate &&
-                          formatTimeTR(a.startAt) === slotTime
-                      );
-
-                      return (
-                        <div
-                          key={`${m.id}-${slotTime}`}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => handleDropOnSlot(m.id, slotTime)}
-                          onClick={() => {
-                            if (slotAppts.length === 0) {
-                              openCreateModal({ date: anchorDate, time: slotTime, memberId: m.id });
-                            }
-                          }}
-                          className={`p-1.5 border-b border-r border-slate-100 min-h-[56px] transition-colors ${
-                            slotAppts.length === 0 ? "cursor-pointer hover:bg-emerald-50/40" : ""
-                          } ${draggingId ? "hover:bg-emerald-100/60" : ""}`}
-                        >
-                          {slotAppts.map((appt) => {
-                            const st = STATUS_META[appt.status] ?? STATUS_META.CONFIRMED;
-                            return (
-                              <div
-                                key={appt.id}
-                                draggable={appt.status !== "CANCELLED"}
-                                onDragStart={() => setDraggingId(appt.id)}
-                                onDragEnd={() => setDraggingId(null)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDetailModal(appt);
-                                }}
-                                style={{ borderLeftColor: m.colorHex ?? "#059669" }}
-                                className={`p-2 rounded-xl border border-l-4 cursor-pointer shadow-2xs space-y-0.5 hover:shadow-xs transition-all ${st.card}`}
-                              >
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="text-[11px] font-bold text-slate-900 truncate">
-                                    {appt.title}
-                                  </span>
-                                  <GripVertical className="w-3 h-3 text-slate-400 shrink-0" />
-                                </div>
-                                <div className="flex items-center justify-between gap-1 text-[10px] text-slate-600">
-                                  <span className="truncate">{appt.contact.name}</span>
-                                  <span className="font-semibold shrink-0">{st.label}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
+                {boardTimeline.slots.map((slotTime, idx) => (
+                  <React.Fragment key={`rail-${slotTime}`}>
+                    {idx === 0 && (
+                      <>
+                        {/* Sticky Time Rail Column */}
+                        <div className="sticky left-0 z-10 border-r border-slate-200 bg-slate-50/95">
+                          {boardTimeline.slots.map((t) => (
+                            <div
+                              key={t}
+                              style={{ height: `${30 * PX_PER_MIN}px` }}
+                              className="px-2 pt-2 border-b border-slate-100 text-[11px] font-semibold text-slate-500 text-center"
+                            >
+                              {t}
+                            </div>
+                          ))}
                         </div>
-                      );
-                    })}
+
+                        {/* Specialist Columns with Exact Minute-Based Positioning */}
+                        {visibleMembers.map((m) => {
+                          const memberDayAppts = visibleAppointments.filter(
+                            (a) =>
+                              a.assignedMembership.id === m.id &&
+                              toIstanbulDateKey(a.startAt) === anchorDate
+                          );
+                          return (
+                            <div
+                              key={`col-${m.id}`}
+                              style={{ height: `${boardTimeline.totalHeightPx}px` }}
+                              className="relative border-r border-slate-100"
+                            >
+                              {/* Background 30-min grid cells for drag-and-drop & click-to-create */}
+                              {boardTimeline.slots.map((t) => (
+                                <div
+                                  key={`${m.id}-${t}`}
+                                  style={{ height: `${30 * PX_PER_MIN}px` }}
+                                  onDragOver={(e) => e.preventDefault()}
+                                  onDrop={() => handleDropOnSlot(m.id, t)}
+                                  onClick={() => openCreateModal({ date: anchorDate, time: t, memberId: m.id })}
+                                  className={`border-b border-slate-100 cursor-pointer transition-colors hover:bg-emerald-50/40 ${
+                                    draggingId ? "hover:bg-emerald-100/60" : ""
+                                  }`}
+                                />
+                              ))}
+
+                              {/* Exact Minute-Positioned Appointment Cards (15/20/30/45/60+ min accurate) */}
+                              {memberDayAppts.map((appt) => {
+                                const st = STATUS_META[appt.status] ?? STATUS_META.CONFIRMED;
+                                const sMin = toIstanbulMinutes(appt.startAt);
+                                const rawDurMin = Math.max(
+                                  15,
+                                  Math.round(
+                                    (new Date(appt.endAt).getTime() - new Date(appt.startAt).getTime()) /
+                                      60_000
+                                  )
+                                );
+                                const topPx = Math.max(
+                                  2,
+                                  (sMin - boardTimeline.startMin) * PX_PER_MIN + 2
+                                );
+                                const heightPx = Math.max(36, rawDurMin * PX_PER_MIN - 4);
+
+                                return (
+                                  <div
+                                    key={appt.id}
+                                    draggable={appt.status !== "CANCELLED"}
+                                    onDragStart={() => setDraggingId(appt.id)}
+                                    onDragEnd={() => setDraggingId(null)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDetailModal(appt);
+                                    }}
+                                    style={{
+                                      top: `${topPx}px`,
+                                      height: `${heightPx}px`,
+                                      borderLeftColor: m.colorHex ?? "#059669",
+                                    }}
+                                    className={`absolute inset-x-1.5 z-10 px-2 py-1.5 rounded-xl border border-l-4 cursor-pointer shadow-2xs overflow-hidden hover:shadow-sm hover:z-20 transition-all flex flex-col justify-between ${st.card}`}
+                                  >
+                                    <div className="flex items-center justify-between gap-1 min-w-0">
+                                      <span className="text-[11px] font-bold text-slate-900 truncate">
+                                        {appt.title}
+                                      </span>
+                                      <GripVertical className="w-3 h-3 text-slate-400 shrink-0" />
+                                    </div>
+                                    <div className="flex items-center justify-between gap-1 text-[10px] text-slate-600 min-w-0">
+                                      <span className="truncate">
+                                        {formatTimeTR(appt.startAt)}–{formatTimeTR(appt.endAt)} ·{" "}
+                                        {appt.contact.name}
+                                      </span>
+                                      <span className="font-semibold shrink-0">{st.label}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
                   </React.Fragment>
                 ))}
               </div>
