@@ -5,6 +5,7 @@ import {
   LandingFaqAccordion,
 } from "@/components/LandingInteractive";
 import { LandingMobileMenu } from "@/components/LandingMobileMenu";
+import { TakvimoLogo } from "@/components/TakvimoLogo";
 import {
   ArrowRight,
   Check,
@@ -107,11 +108,8 @@ export default async function HomePage() {
       {/* Clean, Understated Editorial Navbar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold text-sm">
-              T
-            </div>
-            <span className="font-bold text-slate-950 tracking-tight text-lg">TAKVIMO</span>
+          <Link href="/" className="shrink-0">
+            <TakvimoLogo variant="light" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-600">
@@ -512,10 +510,10 @@ export default async function HomePage() {
       <footer className="bg-white border-t border-slate-200 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">TAKVIMO</span>
+            <span className="font-bold text-slate-900">TAKVİMO</span>
             <span>· WhatsApp Business & Google Calendar Koordinasyon Platformu</span>
           </div>
-          <p>© {new Date().getFullYear()} TAKVIMO. Tüm hakları saklıdır.</p>
+          <p>© {new Date().getFullYear()} TAKVİMO. Tüm hakları saklıdır.</p>
         </div>
       </footer>
     </div>

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarCheck2, MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
+import { TakvimoLogo } from "@/components/TakvimoLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -64,14 +65,8 @@ export default function LoginPage() {
       </div>
 
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
-        <Link href="/" className="flex items-center gap-3 mb-6 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
-            T
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">TAKVIMO</h1>
-            <p className="text-xs text-slate-500">Tek gelen kutusu. Tek takvim. Tek ekip.</p>
-          </div>
+        <Link href="/" className="inline-block mb-6">
+          <TakvimoLogo variant="light" subtitle="Tek gelen kutusu. Tek takvim. Tek ekip." />
         </Link>
 
         <div className="flex bg-slate-100 p-1 rounded-xl mb-6">

@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TakvimoLogo } from "@/components/TakvimoLogo";
 
 interface SessionInfo {
   name: string;
@@ -100,18 +101,8 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#F3F6F5] flex flex-col md:flex-row">
       {/* Desktop Floating Obsidian Rail Sidebar */}
       <aside className="hidden md:flex md:w-[268px] md:flex-col md:fixed md:inset-y-3 md:left-3 bg-slate-950 text-slate-300 rounded-3xl border border-slate-800/90 shadow-2xl shadow-slate-950/20 z-30 overflow-hidden">
-        <div className="h-18 px-5 flex items-center gap-3 border-b border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-slate-950 font-black text-base shadow-lg shadow-emerald-500/25">
-            T
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-extrabold text-white tracking-tight text-base leading-none">
-              TAKVIMO
-            </span>
-            <span className="text-[11px] text-emerald-400 font-medium mt-1 truncate max-w-[155px]">
-              {session?.tenantName ?? "Yükleniyor..."}
-            </span>
-          </div>
+        <div className="h-18 px-5 flex items-center border-b border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950">
+          <TakvimoLogo variant="dark" subtitle={session?.tenantName ?? "Yükleniyor..."} />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
