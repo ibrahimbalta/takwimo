@@ -6,9 +6,23 @@ import { requireAuth, handleApiError } from "@/lib/tenant-guard";
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth();
-    const filter = req.nextUrl.searchParams.get("filter") ?? "all";
-
+    const rawFilter = req.nextUrl.searchParams.get("filter") ?? "all";
     const isStaff = session.role === "STAFF";
+    const filter = isStaff && rawFilter === "all" ? "mine" : rawFilter;
+    const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? "50");
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 10), 100) : 50;
+
+    const baseScope = isStaff
+      ? {
+          tenantId: session.tenantId,
+          OR: [
+            { assignedMembershipId: session.membershipId },
+            { assignedMembershipId: null },
+            { appointments: { some: { assignedMembershipId: session.membershipId } } },
+          ],
+        }
+      : { tenantId: session.tenantId };
+
     const whereClause = isStaff
       ? {
           tenantId: session.tenantId,
@@ -21,6 +35,15 @@ export async function GET(req: NextRequest) {
               }
             : filter === "unassigned"
             ? { assignedMembershipId: null }
+            : filter === "unread"
+            ? {
+                unreadCount: { gt: 0 },
+                OR: [
+                  { assignedMembershipId: session.membershipId },
+                  { assignedMembershipId: null },
+                  { appointments: { some: { assignedMembershipId: session.membershipId } } },
+                ],
+              }
             : {
                 OR: [
                   { assignedMembershipId: session.membershipId },
@@ -33,13 +56,23 @@ export async function GET(req: NextRequest) {
           tenantId: session.tenantId,
           ...(filter === "mine" ? { assignedMembershipId: session.membershipId } : {}),
           ...(filter === "unassigned" ? { assignedMembershipId: null } : {}),
+          ...(filter === "unread" ? { unreadCount: { gt: 0 } } : {}),
         };
 
-    const [conversations, waAccount, memberships] = await Promise.all([
+    const [rawConversations, waAccount, memberships, unreadConversations] = await Promise.all([
       prisma.conversation.findMany({
         where: whereClause,
         include: {
-          contact: true,
+          contact: {
+            select: {
+              id: true,
+              name: true,
+              phoneE164: true,
+              tags: true,
+              notes: true,
+              kvkkConsentAt: true,
+            },
+          },
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
           messages: {
             orderBy: { createdAt: "desc" },
@@ -47,6 +80,7 @@ export async function GET(req: NextRequest) {
           },
         },
         orderBy: { lastMessageAt: "desc" },
+        take: limit + 1,
       }),
       prisma.whatsappAccount.findFirst({
         where: { tenantId: session.tenantId },
@@ -57,10 +91,19 @@ export async function GET(req: NextRequest) {
         include: { user: { select: { name: true, email: true } } },
         orderBy: { createdAt: "asc" },
       }),
+      prisma.conversation.count({
+        where: { ...baseScope, unreadCount: { gt: 0 } },
+      }),
     ]);
+
+    const hasMore = rawConversations.length > limit;
+    const conversations = hasMore ? rawConversations.slice(0, limit) : rawConversations;
 
     return NextResponse.json({
       conversations,
+      hasMore,
+      unreadConversations,
+      appliedFilter: filter,
       memberships,
       role: session.role,
       currentMembershipId: session.membershipId,

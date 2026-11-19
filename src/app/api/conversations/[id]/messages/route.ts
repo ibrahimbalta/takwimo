@@ -7,19 +7,23 @@ import { sendWhatsappMessage } from "@/lib/integrations/whatsapp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth();
     const { id } = await context.params;
+    const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? "60");
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 10), 200) : 60;
+    const beforeParam = req.nextUrl.searchParams.get("before");
+    const beforeDate = beforeParam ? new Date(beforeParam) : null;
+    const validBefore = beforeDate && !Number.isNaN(beforeDate.getTime()) ? beforeDate : null;
 
     const conversation = await prisma.conversation.findFirst({
       where: { id, tenantId: session.tenantId },
       include: {
         contact: true,
         assignedMembership: { include: { user: { select: { name: true } } } },
-        messages: { orderBy: { createdAt: "asc" } },
       },
     });
 
@@ -45,7 +49,38 @@ export async function GET(
       }
     }
 
-    if (conversation.unreadCount > 0) {
+    const [rawMessages, contactAppointments] = await Promise.all([
+      prisma.message.findMany({
+        where: {
+          tenantId: session.tenantId,
+          conversationId: conversation.id,
+          ...(validBefore ? { createdAt: { lt: validBefore } } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+      }),
+      prisma.appointment.findMany({
+        where: {
+          tenantId: session.tenantId,
+          contactId: conversation.contactId,
+          ...(session.role === "STAFF" ? { assignedMembershipId: session.membershipId } : {}),
+        },
+        orderBy: { startAt: "desc" },
+        take: 4,
+        select: {
+          id: true,
+          title: true,
+          startAt: true,
+          status: true,
+          assignedMembership: { select: { user: { select: { name: true } } } },
+        },
+      }),
+    ]);
+
+    const hasMoreMessages = rawMessages.length > limit;
+    const messages = (hasMoreMessages ? rawMessages.slice(0, limit) : rawMessages).reverse();
+
+    if (conversation.unreadCount > 0 && !validBefore) {
       await prisma.conversation.update({
         where: { id: conversation.id },
         data: { unreadCount: 0 },
@@ -53,7 +88,12 @@ export async function GET(
     }
 
     return NextResponse.json({
-      conversation,
+      conversation: {
+        ...conversation,
+        messages,
+      },
+      hasMoreMessages,
+      contactAppointments,
       within24hWindow: isWithin24Hours(conversation.lastCustomerMessageAt),
     });
   } catch (err) {
