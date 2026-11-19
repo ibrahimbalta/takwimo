@@ -6,7 +6,18 @@ import {
   LandingFaqAccordion,
 } from "@/components/LandingInteractive";
 import { SiteHeader, SiteFooter } from "@/components/SiteChrome";
-import { ArrowRight, Check, Sparkles, Layers, Star } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckCheck,
+  Sparkles,
+  Layers,
+  Star,
+  Calendar,
+  ShieldCheck,
+  Clock,
+  Bot,
+} from "lucide-react";
 
 export default async function HomePage() {
   const session = await getSession();
@@ -15,78 +26,205 @@ export default async function HomePage() {
     <div className="min-h-screen bg-white text-slate-900 flex flex-col overflow-x-hidden">
       <SiteHeader isLoggedIn={Boolean(session)} activePath="/" />
 
-      {/* ABOVE-THE-FOLD VISUAL SPLIT HERO */}
-      <section className="relative bg-gradient-to-b from-emerald-50/50 via-white to-white pt-6 pb-12 sm:pt-14 sm:pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      {/* ABOVE-THE-FOLD EXECUTIVE SPLIT HERO */}
+      <section className="relative bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.09),_transparent_55%),linear-gradient(to_bottom,_#f8fbfa,_#ffffff)] pt-7 pb-14 sm:pt-14 sm:pb-20 border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          {/* Left: Executive Copy & Conversion Hierarchy */}
           <div className="lg:col-span-6 space-y-5 sm:space-y-6">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-emerald-800 text-[11px] sm:text-xs font-semibold leading-snug max-w-full">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>Resmî Meta WhatsApp Cloud API · Google Calendar</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-emerald-200/90 shadow-2xs text-emerald-800 text-[11px] sm:text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>Resmî Meta WhatsApp Cloud API · İki Yönlü Google Calendar</span>
             </div>
 
-            <h1 className="text-[28px] sm:text-5xl font-extrabold text-slate-950 tracking-[-0.03em] leading-[1.12] sm:leading-[1.08]">
-              WhatsApp&apos;tan gelen her mesajı,{" "}
-              <span className="text-emerald-700">çakışmasız randevuya</span> dönüştürün.
+            <h1 className="text-[30px] sm:text-[46px] xl:text-[52px] font-extrabold text-slate-950 tracking-[-0.035em] leading-[1.09]">
+              WhatsApp sohbetlerini{" "}
+              <span className="bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
+                çakışmasız randevulara
+              </span>{" "}
+              dönüştürün.
             </h1>
 
-            <p className="text-sm sm:text-lg text-slate-600 leading-relaxed">
+            <p className="text-sm sm:text-[17px] text-slate-600 leading-relaxed max-w-xl">
+              Ekibiniz tek ortak WhatsApp gelen kutusundan yanıt verirken randevular Google
+              Takvime anında işlensin.{" "}
               <strong className="font-semibold text-slate-900">
-                Tek gelen kutusu. Tek takvim. Tek ekip.
+                7/24 AI resepsiyonist ve otomatik hatırlatmalarla
               </strong>{" "}
-              Müşterilerinizle WhatsApp&apos;tan yazışırken tek tıkla uzmanınızın Google
-              Takvimine randevu işleyin, 7/24 AI asistan ve otomatik hatırlatmalarla gelmeme
-              oranını düşürün.
+              randevu kayıplarını ve manuel takibi ortadan kaldırın.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-1">
               <Link
                 href={session ? "/dashboard" : "/login"}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-md shadow-emerald-900/10 transition-all"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-lg shadow-emerald-900/15 transition-all"
               >
                 <span>{session ? "Panele Devam Et" : "Ücretsiz Hesap Oluştur"}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#canli-demo"
-                className="inline-flex items-center justify-center px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-slate-800 text-sm font-semibold transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40 text-slate-800 text-sm font-semibold transition-colors"
               >
-                Kayıt Olmadan Dene
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span>Canlı Demoyu İncele</span>
               </a>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs text-slate-500 font-medium">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/70 text-xs text-slate-600 font-medium">
               <span className="inline-flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-600" />
-                Sonsuza dek ₺0 başlangıç
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                ₺0 başlangıç · Kart gerekmez
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-600" />
-                5 dakikada kurulum
+                <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+                5 dakikada canlı kurulum
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-emerald-600" />
-                KVKK uyumlu
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                KVKK &amp; AES-256 güvenli
               </span>
             </div>
           </div>
 
-          <div className="lg:col-span-6">
-            <div className="rounded-3xl bg-white p-2.5 sm:p-3 border border-slate-200/90 shadow-2xl shadow-slate-900/10">
-              <div className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
-                <img
-                  src="/images/hero-dashboard.jpg"
-                  alt="TAKWİMO WhatsApp Business ve Google Calendar Birleşik Paneli"
-                  className="w-full h-auto object-cover"
-                />
+          {/* Right: Crisp 100% Turkish Live Product UI Showcase */}
+          <div className="lg:col-span-6 relative">
+            {/* Soft Ambient Glow */}
+            <div
+              aria-hidden="true"
+              className="absolute -inset-3 bg-gradient-to-tr from-emerald-200/40 via-teal-100/30 to-sky-100/30 rounded-[32px] blur-2xl -z-10"
+            />
+
+            <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-950/10 overflow-hidden">
+              {/* Browser / Workspace Chrome */}
+              <div className="px-4 py-2.5 bg-slate-950 text-slate-300 flex items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-400/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+                  <span className="ml-2 font-mono text-[10px] text-slate-400 hidden sm:inline">
+                    takwimo.com/inbox
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  CANLI · Meta Cloud API
+                </span>
               </div>
-              <div className="px-3 pt-3 pb-1 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Ortak WhatsApp Kutusu + Google Calendar
-                </span>
-                <span className="text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                  Otomatik Onay & 7/24 AI
-                </span>
+
+              {/* Split Product Preview: WhatsApp Chat + Live Google Calendar */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/80">
+                {/* WhatsApp Chat Pane */}
+                <div className="sm:col-span-7 flex flex-col bg-[#F4F6F5]">
+                  <div className="px-3.5 py-2.5 bg-white border-b border-slate-200/80 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                        SA
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-slate-900 truncate">Selin Aksoy</p>
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold">
+                            VIP
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500">+90 532 ••• 48 12</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+                      24s Aktif
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 space-y-2.5 text-[11.5px] flex-1">
+                    <div className="max-w-[88%] rounded-2xl rounded-bl-sm bg-white border border-slate-200/80 px-3 py-2 text-slate-800 shadow-2xs">
+                      <p className="leading-snug">
+                        Merhaba, yarın saat 14:00 için müsaitliğiniz var mı?
+                      </p>
+                      <p className="text-[9.5px] text-slate-400 text-right mt-1">10:24</p>
+                    </div>
+
+                    <div className="max-w-[88%] ml-auto rounded-2xl rounded-br-sm bg-emerald-700 text-white px-3 py-2 shadow-2xs">
+                      <p className="leading-snug">
+                        Merhaba Selin Hanım! 14:00 uygun, randevunuzu hemen oluşturuyorum.
+                      </p>
+                      <div className="flex items-center justify-end gap-1 text-[9.5px] text-emerald-200 mt-1">
+                        <span>10:24</span>
+                        <CheckCheck className="w-3 h-3" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 border border-emerald-200/90 px-3 py-2 text-[10.5px] text-emerald-900 font-medium flex items-start gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Otomatik Onay:</strong> 21 Kasım 14:00 randevunuz onaylandı ve
+                        hatırlatma planlandı.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Availability & Google Calendar Pane */}
+                <div className="sm:col-span-5 bg-white p-3.5 flex flex-col justify-between gap-3">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-900">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                        Google Takvim
+                      </span>
+                      <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                        Senkron
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold text-slate-800 truncate">Elif Kaya</p>
+                        <p className="text-[9.5px] text-slate-500">Yarın · 21 Kasım</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-500 mb-1.5">
+                        Canlı Müsaitlik (Çakışma Korumalı)
+                      </p>
+                      <div className="grid grid-cols-3 gap-1.5 text-[10.5px] font-bold">
+                        <span className="py-1.5 rounded-lg bg-rose-50 text-rose-500 border border-rose-200 text-center line-through">
+                          13:00
+                        </span>
+                        <span className="py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-center">
+                          13:30
+                        </span>
+                        <span className="py-1.5 rounded-lg bg-emerald-700 text-white border border-emerald-800 text-center shadow-xs">
+                          14:00
+                        </span>
+                        <span className="py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-center">
+                          14:30
+                        </span>
+                        <span className="py-1.5 rounded-lg bg-rose-50 text-rose-500 border border-rose-200 text-center line-through">
+                          15:00
+                        </span>
+                        <span className="py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-center">
+                          15:30
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-950 text-white space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-emerald-400 font-bold inline-flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Onaylandı
+                      </span>
+                      <span className="text-slate-400">14:00 – 14:30</span>
+                    </div>
+                    <p className="text-[11px] font-bold truncate">Ön Görüşme &amp; Kontrol</p>
+                    <p className="text-[9.5px] text-slate-400 inline-flex items-center gap-1">
+                      <Bot className="w-3 h-3 text-emerald-400" />
+                      7/24 AI + Otomatik Hatırlatma
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
