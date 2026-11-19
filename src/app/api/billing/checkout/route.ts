@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole, ApiError, handleApiError } from "@/lib/tenant-guard";
 import { getPlanById } from "@/lib/plans";
 import { recordAuditLog } from "@/lib/audit";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
 const checkoutSchema = z.object({
   planTier: z.enum(["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]),
@@ -30,7 +31,8 @@ export async function POST(req: NextRequest) {
     const periodEnd =
       plan.priceTry === 0 ? null : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const hasIyzico = Boolean(process.env.IYZICO_API_KEY && process.env.IYZICO_SECRET_KEY);
+    const payCfg = await getPlatformConfigMap(["IYZICO_API_KEY", "IYZICO_SECRET_KEY"]);
+    const hasIyzico = Boolean(payCfg.IYZICO_API_KEY && payCfg.IYZICO_SECRET_KEY);
     const provider = plan.priceTry === 0 ? "MANUAL" : hasIyzico ? "IYZICO" : "DEMO";
     const providerRef = `TKV-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole, ApiError, handleApiError } from "@/lib/tenant-guard";
 import { encryptSecret } from "@/lib/crypto";
 import { recordAuditLog } from "@/lib/audit";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
 const embeddedSignupSchema = z.object({
   code: z.string().min(5, "Meta yetkilendirme kodu eksik."),
@@ -20,8 +21,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireRole(["OWNER", "ADMIN"]);
 
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
+    const cfg = await getPlatformConfigMap(["META_APP_ID", "META_APP_SECRET"]);
+    const appId = cfg.META_APP_ID;
+    const appSecret = cfg.META_APP_SECRET;
     if (!appId || !appSecret) {
       throw new ApiError(
         503,

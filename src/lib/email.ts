@@ -1,3 +1,5 @@
+import { getPlatformConfigMap } from "@/lib/platform-config";
+
 export interface SendEmailParams {
   to: string;
   subject: string;
@@ -17,8 +19,9 @@ export interface SendEmailResult {
  * Falls back cleanly to explicit DEMO logging when running without email credentials.
  */
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromAddress = process.env.EMAIL_FROM ?? "TAKWİMO <bildirim@takwimo.com>";
+  const cfg = await getPlatformConfigMap(["RESEND_API_KEY", "EMAIL_FROM"]);
+  const apiKey = cfg.RESEND_API_KEY;
+  const fromAddress = cfg.EMAIL_FROM ?? "TAKWİMO <bildirim@takwimo.com>";
 
   if (!apiKey) {
     console.info(

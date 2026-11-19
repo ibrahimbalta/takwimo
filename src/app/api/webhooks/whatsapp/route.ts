@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyMetaSignature } from "@/lib/crypto";
+import { getPlatformConfig } from "@/lib/platform-config";
 
 /**
  * Meta WhatsApp Cloud API Webhook Verification (GET)
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("hub.verify_token");
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
 
-  const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+  const expectedToken = await getPlatformConfig("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
   if (mode === "subscribe" && expectedToken && token === expectedToken && challenge) {
     return new NextResponse(challenge, { status: 200 });
   }
@@ -49,7 +50,7 @@ interface MetaWebhookPayload {
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const appSecret = process.env.META_APP_SECRET;
+  const appSecret = await getPlatformConfig("META_APP_SECRET");
 
   if (!appSecret) {
     return NextResponse.json(

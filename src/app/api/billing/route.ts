@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, handleApiError } from "@/lib/tenant-guard";
 import { PLANS, getTenantUsageAndQuota } from "@/lib/plans";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
 export async function GET() {
   try {
@@ -29,9 +30,12 @@ export async function GET() {
       return NextResponse.json({ error: "İşletme bulunamadı." }, { status: 404 });
     }
 
-    const quota = await getTenantUsageAndQuota(session.tenantId, tenant.planTier);
+    const [quota, payCfg] = await Promise.all([
+      getTenantUsageAndQuota(session.tenantId, tenant.planTier),
+      getPlatformConfigMap(["IYZICO_API_KEY", "IYZICO_SECRET_KEY"]),
+    ]);
     const paymentProvider =
-      process.env.IYZICO_API_KEY && process.env.IYZICO_SECRET_KEY ? "IYZICO" : "DEMO";
+      payCfg.IYZICO_API_KEY && payCfg.IYZICO_SECRET_KEY ? "IYZICO" : "DEMO";
 
     return NextResponse.json({
       tenant,

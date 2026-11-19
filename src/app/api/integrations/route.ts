@@ -5,6 +5,7 @@ import { requireAuth, requireRole, ApiError, handleApiError } from "@/lib/tenant
 import { encryptSecret } from "@/lib/crypto";
 import { buildGoogleOAuthUrl, isGoogleOAuthConfigured } from "@/lib/integrations/google-calendar";
 import { recordAuditLog } from "@/lib/audit";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
 export async function GET() {
   try {
@@ -31,14 +32,20 @@ export async function GET() {
       }),
     ]);
 
-    const googleConfigured = isGoogleOAuthConfigured();
+    const googleConfigured = await isGoogleOAuthConfigured();
     const googleOAuthUrl = googleConfigured
-      ? buildGoogleOAuthUrl(`${session.tenantId}:${session.membershipId}`)
+      ? await buildGoogleOAuthUrl(`${session.tenantId}:${session.membershipId}`)
       : null;
 
-    const metaAppId = process.env.META_APP_ID ?? null;
-    const metaConfigId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID ?? null;
-    const metaAppSecret = process.env.META_APP_SECRET ?? null;
+    const cfg = await getPlatformConfigMap([
+      "META_APP_ID",
+      "META_EMBEDDED_SIGNUP_CONFIG_ID",
+      "META_APP_SECRET",
+      "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+    ]);
+    const metaAppId = cfg.META_APP_ID ?? null;
+    const metaConfigId = cfg.META_EMBEDDED_SIGNUP_CONFIG_ID ?? null;
+    const metaAppSecret = cfg.META_APP_SECRET ?? null;
 
     return NextResponse.json({
       role: session.role,
@@ -47,7 +54,7 @@ export async function GET() {
       googleOAuthConfigured: googleConfigured,
       googleOAuthUrl,
       metaWebhookConfigured: Boolean(
-        metaAppSecret && process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        metaAppSecret && cfg.WHATSAPP_WEBHOOK_VERIFY_TOKEN
       ),
       metaEmbeddedSignup: {
         configured: Boolean(metaAppId && metaAppSecret && metaConfigId),

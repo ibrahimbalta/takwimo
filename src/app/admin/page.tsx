@@ -20,8 +20,10 @@ import {
   ShieldCheck,
   AlertTriangle,
   CalendarPlus,
+  Settings,
 } from "lucide-react";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
+import { AdminPlatformSettings } from "@/components/AdminPlatformSettings";
 import { formatDateTR, formatTimeTR, getSubscriptionAlert } from "@/lib/utils";
 
 interface TenantMember {
@@ -83,7 +85,7 @@ export default function StandaloneAdminCrmPage() {
   const router = useRouter();
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"tenants" | "activity">("tenants");
+  const [tab, setTab] = useState<"tenants" | "activity" | "settings">("tenants");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "EXPIRING" | "SUSPENDED" | "PRO">("ALL");
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null);
@@ -240,6 +242,19 @@ export default function StandaloneAdminCrmPage() {
             <span>Sistem Denetim Akışı</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => setTab("settings")}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              tab === "settings"
+                ? "bg-emerald-600 text-white"
+                : "text-slate-400 hover:bg-slate-900 hover:text-white"
+            }`}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            <span>Entegrasyonlar & Ayarlar</span>
+          </button>
+
           <Link
             href="/dashboard"
             className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white"
@@ -277,7 +292,11 @@ export default function StandaloneAdminCrmPage() {
             <div className="hidden lg:flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-700" />
               <h1 className="font-bold text-slate-900 text-base sm:text-lg">
-                {tab === "tenants" ? "Abone İşletmeler & Abonelik Takibi" : "Platform Denetim Kayıtları"}
+                {tab === "tenants"
+                  ? "Abone İşletmeler & Abonelik Takibi"
+                  : tab === "settings"
+                  ? "Platform Entegrasyonları & Sistem Ayarları"
+                  : "Platform Denetim Kayıtları"}
               </h1>
             </div>
           </div>
@@ -554,6 +573,8 @@ export default function StandaloneAdminCrmPage() {
                 </table>
               </div>
             </div>
+          ) : tab === "settings" ? (
+            <AdminPlatformSettings adminEmail={data.admin.email} />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {data.recentAuditLogs.map((log) => (
@@ -609,12 +630,23 @@ export default function StandaloneAdminCrmPage() {
         <button
           type="button"
           onClick={() => setTab("activity")}
-          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium ${
+          className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium ${
             tab === "activity" ? "text-emerald-400 bg-white/10" : "text-slate-400"
           }`}
         >
           <Activity className="w-5 h-5" />
           <span>Denetim</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("settings")}
+          className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium ${
+            tab === "settings" ? "text-emerald-400 bg-white/10" : "text-slate-400"
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          <span>Ayarlar</span>
         </button>
 
         <button

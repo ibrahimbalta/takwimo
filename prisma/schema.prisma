@@ -320,3 +320,10 @@ model AuditLog {
 
   @@index([tenantId, createdAt])
 }
+
+model PlatformSetting {
+  key       String   @id
+  value     String
+  isSecret  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

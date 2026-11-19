@@ -1,17 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
-export function isGoogleOAuthConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+export async function isGoogleOAuthConfigured(): Promise<boolean> {
+  const cfg = await getPlatformConfigMap(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]);
+  return Boolean(cfg.GOOGLE_CLIENT_ID && cfg.GOOGLE_CLIENT_SECRET);
 }
 
-export function buildGoogleOAuthUrl(state: string): string | null {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+export async function buildGoogleOAuthUrl(state: string): Promise<string | null> {
+  const cfg = await getPlatformConfigMap([
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI",
+    "NEXT_PUBLIC_APP_URL",
+  ]);
+  const clientId = cfg.GOOGLE_CLIENT_ID;
   const redirectUri =
-    process.env.GOOGLE_REDIRECT_URI ??
-    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/integrations/google/callback`;
+    cfg.GOOGLE_REDIRECT_URI ??
+    `${cfg.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/integrations/google/callback`;
 
-  if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) {
+  if (!clientId || !cfg.GOOGLE_CLIENT_SECRET) {
     return null;
   }
 
@@ -44,7 +52,8 @@ async function getValidGoogleAccessToken(connectionId: string): Promise<string |
       return decryptSecret(conn.encryptedAccessToken);
     }
 
-    if (!conn.encryptedRefreshToken || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    const googleCfg = await getPlatformConfigMap(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]);
+    if (!conn.encryptedRefreshToken || !googleCfg.GOOGLE_CLIENT_ID || !googleCfg.GOOGLE_CLIENT_SECRET) {
       return null;
     }
 
@@ -53,8 +62,8 @@ async function getValidGoogleAccessToken(connectionId: string): Promise<string |
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        client_id: googleCfg.GOOGLE_CLIENT_ID,
+        client_secret: googleCfg.GOOGLE_CLIENT_SECRET,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
@@ -307,7 +316,8 @@ export async function registerGoogleCalendarWatch(connectionId: string): Promise
   channelId?: string;
   expiration?: Date;
 }> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appCfg = await getPlatformConfigMap(["NEXT_PUBLIC_APP_URL"]);
+  const appUrl = appCfg.NEXT_PUBLIC_APP_URL ?? "";
   if (!appUrl.startsWith("https://")) {
     return { ok: false };
   }

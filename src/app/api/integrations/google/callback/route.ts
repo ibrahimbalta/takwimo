@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { encryptSecret } from "@/lib/crypto";
 import { recordAuditLog } from "@/lib/audit";
 import { registerGoogleCalendarWatch } from "@/lib/integrations/google-calendar";
+import { getPlatformConfigMap } from "@/lib/platform-config";
 
 /**
  * Google OAuth 2.0 Callback
@@ -10,9 +11,15 @@ import { registerGoogleCalendarWatch } from "@/lib/integrations/google-calendar"
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const cfg = await getPlatformConfigMap([
+    "NEXT_PUBLIC_APP_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI",
+  ]);
+  const appUrl = cfg.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  if (!code || !state || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  if (!code || !state || !cfg.GOOGLE_CLIENT_ID || !cfg.GOOGLE_CLIENT_SECRET) {
     return NextResponse.redirect(`${appUrl}/integrations?google=not_configured`);
   }
 
@@ -22,15 +29,15 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri =
-    process.env.GOOGLE_REDIRECT_URI ?? `${appUrl}/api/integrations/google/callback`;
+    cfg.GOOGLE_REDIRECT_URI ?? `${appUrl}/api/integrations/google/callback`;
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      client_id: cfg.GOOGLE_CLIENT_ID,
+      client_secret: cfg.GOOGLE_CLIENT_SECRET,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
