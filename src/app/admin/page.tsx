@@ -21,9 +21,11 @@ import {
   AlertTriangle,
   CalendarPlus,
   Settings,
+  FileEdit,
 } from "lucide-react";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
 import { AdminPlatformSettings } from "@/components/AdminPlatformSettings";
+import { AdminCmsEditor } from "@/components/AdminCmsEditor";
 import { formatDateTR, formatTimeTR, getSubscriptionAlert } from "@/lib/utils";
 
 interface TenantMember {
@@ -85,7 +87,7 @@ export default function StandaloneAdminCrmPage() {
   const router = useRouter();
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"tenants" | "activity" | "settings">("tenants");
+  const [tab, setTab] = useState<"tenants" | "activity" | "settings" | "cms">("tenants");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "EXPIRING" | "SUSPENDED" | "PRO">("ALL");
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null);
@@ -255,6 +257,19 @@ export default function StandaloneAdminCrmPage() {
             <span>Entegrasyonlar & Ayarlar</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => setTab("cms")}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              tab === "cms"
+                ? "bg-emerald-600 text-white"
+                : "text-slate-400 hover:bg-slate-900 hover:text-white"
+            }`}
+          >
+            <FileEdit className="w-4 h-4 shrink-0" />
+            <span>Site İçerikleri (CMS)</span>
+          </button>
+
           <Link
             href="/dashboard"
             className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white"
@@ -296,6 +311,8 @@ export default function StandaloneAdminCrmPage() {
                   ? "Abone İşletmeler & Abonelik Takibi"
                   : tab === "settings"
                   ? "Platform Entegrasyonları & Sistem Ayarları"
+                  : tab === "cms"
+                  ? "Site İçerikleri (Referanslar & Nasıl Çalışır)"
                   : "Platform Denetim Kayıtları"}
               </h1>
             </div>
@@ -575,6 +592,8 @@ export default function StandaloneAdminCrmPage() {
             </div>
           ) : tab === "settings" ? (
             <AdminPlatformSettings adminEmail={data.admin.email} />
+          ) : tab === "cms" ? (
+            <AdminCmsEditor />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {data.recentAuditLogs.map((log) => (

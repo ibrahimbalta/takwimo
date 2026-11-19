@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/login", "/privacy", "/terms", "/kvkk"],
+        allow: ["/", "/nasil-calisir", "/referanslar", "/login", "/privacy", "/terms", "/kvkk"],
         disallow: ["/api/", "/admin/", "/dashboard", "/inbox", "/calendar", "/appointments", "/settings"],
       },
     ],

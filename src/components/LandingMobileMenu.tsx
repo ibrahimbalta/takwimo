@@ -9,10 +9,11 @@ export function LandingMobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [open, setOpen] = useState(false);
 
   const links = [
-    { href: "#nasil-calisir", label: "Nasıl Çalışır?" },
-    { href: "#kimler-icin", label: "Kimler İçin?" },
-    { href: "#fiyatlandirma", label: "Fiyatlandırma" },
-    { href: "#sss", label: "SSS" },
+    { href: "/#canli-demo", label: "Canlı Demo" },
+    { href: "/nasil-calisir", label: "Nasıl Çalışır?" },
+    { href: "/referanslar", label: "Referanslar" },
+    { href: "/#fiyatlandirma", label: "Fiyatlandırma" },
+    { href: "/#sss", label: "SSS" },
   ];
 
   return (
