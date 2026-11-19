@@ -29,7 +29,8 @@ type ConfigKey =
   | "RESEND_API_KEY"
   | "EMAIL_FROM"
   | "IYZICO_API_KEY"
-  | "IYZICO_SECRET_KEY";
+  | "IYZICO_SECRET_KEY"
+  | "GEMINI_API_KEY";
 
 interface SettingsPayload {
   fields: Record<
@@ -43,6 +44,7 @@ interface SettingsPayload {
     emailResend: boolean;
     paymentIyzico: boolean;
     cronSecured: boolean;
+    aiGemini?: boolean;
   };
   endpoints: {
     whatsappWebhookUrl: string;
@@ -534,6 +536,42 @@ export function AdminPlatformSettings({ adminEmail }: { adminEmail: string }) {
               <Play className="w-3.5 h-3.5" />
               {runningCron ? "Çalıştırılıyor..." : "Cron'u Şimdi Çalıştır"}
             </button>
+          </div>
+        </div>
+
+        {/* 5. Gemini AI Receptionist & Voice Transcription */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                5. Yapay Zekâ WhatsApp Asistanı & Sesli Mesaj Yazıya Çevirme (Google Gemini)
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                7/24 AI Resepsiyonist ve gelen WhatsApp sesli mesajlarını Türkçe metne çevirme için
+              </p>
+            </div>
+            <StatusBadge active={Boolean(data.statuses.aiGemini)} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Gemini API Key{" "}
+                {data.fields.GEMINI_API_KEY?.isConfigured && `(${data.fields.GEMINI_API_KEY.masked})`}
+              </label>
+              <input
+                type="password"
+                value={form.GEMINI_API_KEY ?? ""}
+                onChange={(e) => updateField("GEMINI_API_KEY", e.target.value)}
+                placeholder={
+                  data.fields.GEMINI_API_KEY?.isConfigured ? "Kayıtlı" : "AIzaSy..."
+                }
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 flex items-center">
+              AI anahtarı girildiğinde mesai dışı/7-24 AI modu açık olan işletmelerde gelen
+              WhatsApp mesajları ve sesli notlar otomatik yanıtlanır ve yazıya çevrilir.
+            </div>
           </div>
         </div>
       </div>

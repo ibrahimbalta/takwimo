@@ -14,11 +14,12 @@ export type PlatformConfigKey =
   | "RESEND_API_KEY"
   | "EMAIL_FROM"
   | "IYZICO_API_KEY"
-  | "IYZICO_SECRET_KEY";
+  | "IYZICO_SECRET_KEY"
+  | "GEMINI_API_KEY";
 
 export const PLATFORM_CONFIG_DEFS: Record<
   PlatformConfigKey,
-  { isSecret: boolean; group: "GENERAL" | "META" | "GOOGLE" | "EMAIL" | "PAYMENT" }
+  { isSecret: boolean; group: "GENERAL" | "META" | "GOOGLE" | "EMAIL" | "PAYMENT" | "AI" }
 > = {
   NEXT_PUBLIC_APP_URL: { isSecret: false, group: "GENERAL" },
   CRON_SECRET: { isSecret: true, group: "GENERAL" },
@@ -33,6 +34,7 @@ export const PLATFORM_CONFIG_DEFS: Record<
   EMAIL_FROM: { isSecret: false, group: "EMAIL" },
   IYZICO_API_KEY: { isSecret: true, group: "PAYMENT" },
   IYZICO_SECRET_KEY: { isSecret: true, group: "PAYMENT" },
+  GEMINI_API_KEY: { isSecret: true, group: "AI" },
 };
 
 /**
@@ -167,6 +169,7 @@ export async function getPlatformConfigSummary() {
       emailResend: Boolean(values.RESEND_API_KEY),
       paymentIyzico: Boolean(values.IYZICO_API_KEY && values.IYZICO_SECRET_KEY),
       cronSecured: Boolean(values.CRON_SECRET),
+      aiGemini: Boolean(values.GEMINI_API_KEY),
     },
   };
 }

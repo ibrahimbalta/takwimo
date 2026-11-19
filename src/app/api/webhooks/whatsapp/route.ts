@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyMetaSignature } from "@/lib/crypto";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { transcribeWhatsappAudio, maybeReplyWithAiReceptionist } from "@/lib/ai-assistant";
+import { sendWhatsappMessage } from "@/lib/integrations/whatsapp";
+import { syncAppointmentToGoogle } from "@/lib/integrations/google-calendar";
 
 /**
  * Meta WhatsApp Cloud API Webhook Verification (GET)
@@ -34,6 +37,10 @@ interface MetaWebhookPayload {
           audio?: { id?: string; mime_type?: string };
           video?: { id?: string; caption?: string; mime_type?: string };
           location?: { latitude?: number; longitude?: number; name?: string };
+          interactive?: {
+            type?: string;
+            button_reply?: { id?: string; title?: string };
+          };
         }>;
         statuses?: Array<{
           id?: string;
@@ -155,8 +162,22 @@ export async function POST(req: NextRequest) {
                 msg.document?.caption ? ` ${msg.document.caption}` : ""
               }`;
               break;
-            case "audio":
-              bodyText = `🎙️ [Sesli mesaj · ID: ${msg.audio?.id ?? "-"}]`;
+            case "audio": {
+              const transcript = msg.audio?.id
+                ? await transcribeWhatsappAudio({
+                    tenantId: waAccount.tenantId,
+                    mediaId: msg.audio.id,
+                  })
+                : null;
+              bodyText = transcript
+                ? `🎙️ [Sesli Mesaj]: "${transcript}"`
+                : `🎙️ [Sesli mesaj · ID: ${msg.audio?.id ?? "-"}]`;
+              break;
+            }
+            case "interactive":
+              bodyText = msg.interactive?.button_reply?.title
+                ? `🔘 ${msg.interactive.button_reply.title}`
+                : "[Buton yanıtı]";
               break;
             case "video":
               bodyText = msg.video?.caption
@@ -177,12 +198,52 @@ export async function POST(req: NextRequest) {
             conversationId: conversation.id,
             waMessageId: msg.id,
             direction: "INBOUND",
-            type: msg.type === "text" ? "TEXT" : "SYSTEM",
+            type: msg.type === "text" || msg.type === "audio" ? "TEXT" : "SYSTEM",
             body: bodyText,
             status: "READ",
             isDemo: false,
           },
         });
+
+        // Handle interactive appointment button replies (CONFIRM_APPT_... / CANCEL_APPT_...)
+        const btnId = msg.interactive?.button_reply?.id;
+        if (btnId?.startsWith("CONFIRM_APPT_")) {
+          const apptId = btnId.replace("CONFIRM_APPT_", "");
+          await prisma.appointment.updateMany({
+            where: { id: apptId, tenantId: waAccount.tenantId },
+            data: { status: "CONFIRMED", confirmedByCustomerAt: now },
+          });
+          await sendWhatsappMessage({
+            tenantId: waAccount.tenantId,
+            toPhoneE164: phoneE164,
+            type: "TEXT",
+            body: "Teşekkür ederiz! Randevu katılım onayınız alındı. Görüşmek üzere! ✅",
+          });
+        } else if (btnId?.startsWith("CANCEL_APPT_")) {
+          const apptId = btnId.replace("CANCEL_APPT_", "");
+          const updated = await prisma.appointment.updateMany({
+            where: { id: apptId, tenantId: waAccount.tenantId },
+            data: { status: "CANCELLED" },
+          });
+          if (updated.count > 0) {
+            await syncAppointmentToGoogle(apptId, "CANCEL");
+            await sendWhatsappMessage({
+              tenantId: waAccount.tenantId,
+              toPhoneE164: phoneE164,
+              type: "TEXT",
+              body: "Randevunuz iptal edildi. Yeni bir saat seçmek isterseniz bize yazmanız yeterli.",
+            });
+          }
+        } else if (bodyText && (msg.type === "text" || msg.type === "audio")) {
+          // 7/24 AI WhatsApp Receptionist (respects tenant.aiAssistantMode: OFF | AFTER_HOURS | ALWAYS)
+          await maybeReplyWithAiReceptionist({
+            tenantId: waAccount.tenantId,
+            conversationId: conversation.id,
+            contactPhoneE164: phoneE164,
+            contactName,
+            inboundText: bodyText,
+          });
+        }
       }
     }
   }

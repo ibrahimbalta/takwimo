@@ -22,6 +22,11 @@ model Tenant {
   subscriptionEndsAt   DateTime?
   dataRetentionDays    Int       @default(365)
   isSuspended          Boolean   @default(false)
+  publicBookingEnabled Boolean   @default(true)
+  googleReviewUrl      String?
+  aiAssistantMode      String    @default("OFF") // OFF | AFTER_HOURS | ALWAYS
+  aiSystemPrompt       String?
+  reengagementDays     Int       @default(180)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -38,6 +43,9 @@ model Tenant {
   notificationJobs          NotificationJob[]
   auditLogs                 AuditLog[]
   paymentTransactions       PaymentTransaction[]
+  services                  Service[]
+  waitlistEntries           WaitlistEntry[]
+  consentForms              ConsentForm[]
 }
 
 model User {
@@ -167,14 +175,20 @@ model Contact {
   tenantId      String
   phoneE164     String
   name          String
+  notes         String?
+  tags          String    @default("") // comma-separated: VIP,İlk Ziyaret
+  lastVisitAt   DateTime?
+  noShowCount   Int       @default(0)
   kvkkConsentAt DateTime?
   anonymizedAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  appointments  Appointment[]
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations   Conversation[]
+  appointments    Appointment[]
+  waitlistEntries WaitlistEntry[]
+  consentForms    ConsentForm[]
 
   @@unique([tenantId, phoneE164])
   @@index([tenantId])
@@ -185,6 +199,7 @@ model Conversation {
   tenantId              String
   contactId             String
   assignedMembershipId  String?
+  channel               String    @default("WHATSAPP") // WHATSAPP | INSTAGRAM | WEB
   status                String    @default("OPEN") // OPEN | RESOLVED
   lastMessageAt         DateTime  @default(now())
   lastCustomerMessageAt DateTime?
@@ -224,26 +239,32 @@ model Message {
 }
 
 model Appointment {
-  id                   String   @id @default(cuid())
-  tenantId             String
-  contactId            String
-  assignedMembershipId String
-  conversationId       String?
-  title                String
-  startAt              DateTime
-  endAt                DateTime
-  status               String   @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED | RESCHEDULED | COMPLETED
-  googleEventId        String?
-  idempotencyKey       String   @unique
-  notes                String?
-  isDemo               Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  tenantId              String
+  contactId             String
+  assignedMembershipId  String
+  conversationId        String?
+  serviceId             String?
+  title                 String
+  startAt               DateTime
+  endAt                 DateTime
+  status                String    @default("CONFIRMED") // PENDING | CONFIRMED | CANCELLED | RESCHEDULED | COMPLETED
+  priceTry              Int       @default(0)
+  depositPaidTry        Int       @default(0)
+  confirmedByCustomerAt DateTime?
+  reviewRequestedAt     DateTime?
+  googleEventId         String?
+  idempotencyKey        String    @unique
+  notes                 String?
+  isDemo                Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contact            Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
   assignedMembership Membership        @relation(fields: [assignedMembershipId], references: [id], onDelete: Restrict)
   conversation       Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  service            Service?          @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   notificationJobs   NotificationJob[]
 
   @@index([tenantId, startAt])
@@ -326,4 +347,62 @@ model PlatformSetting {
   value     String
   isSecret  Boolean  @default(false)
   updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  durationMinutes Int      @default(30)
+  priceTry        Int      @default(0)
+  depositTry      Int      @default(0)
+  colorHex        String   @default("#059669")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  waitlistEntries WaitlistEntry[]
+
+  @@index([tenantId, isActive])
+}
+
+model WaitlistEntry {
+  id            String   @id @default(cuid())
+  tenantId      String
+  contactId     String
+  serviceId     String?
+  preferredDate DateTime
+  preferredSlot String?
+  status        String   @default("WAITING") // WAITING | NOTIFIED | BOOKED | EXPIRED
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, preferredDate])
+}
+
+model ConsentForm {
+  id               String    @id @default(cuid())
+  tenantId         String
+  contactId        String
+  tokenHash        String    @unique
+  title            String    @default("KVKK Aydınlatma ve Açık Rıza Onam Formu")
+  bodyText         String
+  signerName       String?
+  signatureDataUrl String?
+  signedAt         DateTime?
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, contactId])
 }

@@ -143,3 +143,82 @@ export async function sendWhatsappMessage(params: SendWhatsappParams): Promise<S
     };
   }
 }
+
+/**
+ * Sends a WhatsApp Interactive Reply Button message (e.g., "Geliyorum ✅" / "İptal Et").
+ */
+export async function sendWhatsappInteractiveButtons(params: {
+  tenantId: string;
+  toPhoneE164: string;
+  bodyText: string;
+  buttons: Array<{ id: string; title: string }>;
+}): Promise<SendWhatsappResult> {
+  const account = await prisma.whatsappAccount.findFirst({
+    where: { tenantId: params.tenantId },
+  });
+
+  if (!account || account.status === "DISCONNECTED") {
+    return { ok: false, mode: "DEMO", status: "FAILED", errorCode: "NO_WHATSAPP_ACCOUNT" };
+  }
+
+  if (account.mode !== "LIVE" || !account.encryptedAccessToken || !account.phoneNumberId) {
+    return {
+      ok: true,
+      mode: "DEMO",
+      waMessageId: `demo_btn_${crypto.randomUUID()}`,
+      status: "SENT",
+    };
+  }
+
+  try {
+    const accessToken = decryptSecret(account.encryptedAccessToken);
+    const toDigits = params.toPhoneE164.replace(/\D/g, "");
+    const res = await fetch(`https://graph.facebook.com/v21.0/${account.phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: toDigits,
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: { text: params.bodyText },
+          action: {
+            buttons: params.buttons.slice(0, 3).map((b) => ({
+              type: "reply",
+              reply: { id: b.id, title: b.title.slice(0, 20) },
+            })),
+          },
+        },
+      }),
+    });
+
+    const data = (await res.json()) as {
+      messages?: Array<{ id: string }>;
+      error?: { code?: number; message?: string };
+    };
+    if (!res.ok || !data.messages?.[0]?.id) {
+      return {
+        ok: false,
+        mode: "LIVE",
+        status: "FAILED",
+        errorCode: String(data.error?.code ?? res.status),
+        errorMessage: data.error?.message ?? "İnteraktif mesaj hatası",
+      };
+    }
+
+    return { ok: true, mode: "LIVE", waMessageId: data.messages[0].id, status: "SENT" };
+  } catch (err) {
+    return {
+      ok: false,
+      mode: "LIVE",
+      status: "FAILED",
+      errorCode: "NETWORK_ERROR",
+      errorMessage: err instanceof Error ? err.message : "Ağ hatası",
+    };
+  }
+}

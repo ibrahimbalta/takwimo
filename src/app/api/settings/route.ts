@@ -34,6 +34,11 @@ const updateSettingsSchema = z.object({
   workStartHour: z.string().optional(),
   workEndHour: z.string().optional(),
   dataRetentionDays: z.number().int().min(30).max(3650).optional(),
+  publicBookingEnabled: z.boolean().optional(),
+  googleReviewUrl: z.string().nullable().optional(),
+  aiAssistantMode: z.enum(["OFF", "AFTER_HOURS", "ALWAYS"]).optional(),
+  aiSystemPrompt: z.string().max(1000).nullable().optional(),
+  reengagementDays: z.number().int().min(0).max(730).optional(),
 });
 
 export async function PATCH(req: NextRequest) {

@@ -38,6 +38,7 @@ const patchRuleSchema = z.object({
   id: z.string(),
   isEnabled: z.boolean().optional(),
   offsetMinutes: z.number().int().optional(),
+  bodyPreview: z.string().min(5).max(1000).optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -53,6 +54,13 @@ export async function PATCH(req: NextRequest) {
     });
     if (!rule) {
       throw new ApiError(404, "Otomasyon kuralı bulunamadı.");
+    }
+
+    if (parsed.data.bodyPreview) {
+      await prisma.messageTemplate.update({
+        where: { id: rule.templateId },
+        data: { bodyPreview: parsed.data.bodyPreview.trim() },
+      });
     }
 
     const updated = await prisma.automationRule.update({
@@ -74,6 +82,48 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ rule: updated });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+const createReminderSchema = z.object({
+  offsetMinutes: z.number().int().min(-10080).max(-15), // e.g. -120 for 2h before
+  name: z.string().min(2),
+  bodyPreview: z.string().min(5).max(1000),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await requireRole(["OWNER", "ADMIN"]);
+    const parsed = createReminderSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      throw new ApiError(400, "Geçersiz hatırlatma kuralı.");
+    }
+
+    const tpl = await prisma.messageTemplate.create({
+      data: {
+        tenantId: session.tenantId,
+        name: parsed.data.name.trim(),
+        category: "REMINDER",
+        metaTemplateName: `hatirlatma_${Math.abs(parsed.data.offsetMinutes)}dk`,
+        bodyPreview: parsed.data.bodyPreview.trim(),
+        metaStatus: "DEMO",
+      },
+    });
+
+    const rule = await prisma.automationRule.create({
+      data: {
+        tenantId: session.tenantId,
+        trigger: "BEFORE_START",
+        offsetMinutes: parsed.data.offsetMinutes,
+        templateId: tpl.id,
+        isEnabled: true,
+      },
+      include: { template: true },
+    });
+
+    return NextResponse.json({ rule }, { status: 201 });
   } catch (err) {
     return handleApiError(err);
   }
