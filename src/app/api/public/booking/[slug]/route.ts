@@ -253,23 +253,49 @@ export async function POST(
   }
 
   const wa = await prisma.whatsappAccount.findFirst({ where: { tenantId: tenant.id } });
-  const appointment = await prisma.appointment.create({
-    data: {
-      tenantId: tenant.id,
-      contactId: contact.id,
-      assignedMembershipId: member.id,
-      conversationId: conversation.id,
-      serviceId: service?.id ?? null,
-      title,
-      startAt,
-      endAt,
-      status: "CONFIRMED",
-      priceTry: service?.priceTry ?? 0,
-      idempotencyKey: `pub_${crypto.randomUUID()}`,
-      notes: parsed.data.notes?.trim() || "Online Randevu Sayfasından Oluşturuldu",
-      isDemo: wa?.mode !== "LIVE",
-    },
+  const lockKey = `appt:${tenant.id}:${member.id}:${parsed.data.date}`;
+  const appointment = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+
+    const overlapping = await tx.appointment.findFirst({
+      where: {
+        tenantId: tenant.id,
+        assignedMembershipId: member.id,
+        status: { not: "CANCELLED" },
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+      },
+      select: { id: true },
+    });
+    if (overlapping) {
+      return null;
+    }
+
+    return tx.appointment.create({
+      data: {
+        tenantId: tenant.id,
+        contactId: contact.id,
+        assignedMembershipId: member.id,
+        conversationId: conversation.id,
+        serviceId: service?.id ?? null,
+        title,
+        startAt,
+        endAt,
+        status: "CONFIRMED",
+        priceTry: service?.priceTry ?? 0,
+        idempotencyKey: `pub_${crypto.randomUUID()}`,
+        notes: parsed.data.notes?.trim() || "Online Randevu Sayfasından Oluşturuldu",
+        isDemo: wa?.mode !== "LIVE",
+      },
+    });
   });
+
+  if (!appointment) {
+    return NextResponse.json(
+      { error: "Seçtiğiniz saat az önce doldu. Lütfen başka bir boş saat seçin." },
+      { status: 409 }
+    );
+  }
 
   await syncAppointmentToGoogle(appointment.id, "CREATE");
   await scheduleAppointmentAutomations(tenant.id, appointment.id, "ON_CREATE");

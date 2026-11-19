@@ -9,12 +9,23 @@ import { getPlatformConfig } from "@/lib/platform-config";
 import { formatDateTR, formatTimeTR } from "@/lib/utils";
 import { recordAuditLog } from "@/lib/audit";
 
+function getIstanbulDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 const updateAppointmentSchema = z.object({
+  title: z.string().trim().min(2).max(160).optional(),
+  serviceId: z.string().nullable().optional(),
   status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "RESCHEDULED", "COMPLETED"]).optional(),
   startAt: z.string().datetime().optional(),
   endAt: z.string().datetime().optional(),
   assignedMembershipId: z.string().nullable().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -78,6 +89,16 @@ export async function PATCH(
       }
     }
 
+    if (parsed.data.serviceId) {
+      const svc = await prisma.service.findFirst({
+        where: { id: parsed.data.serviceId, tenantId: session.tenantId, isActive: true },
+        select: { id: true },
+      });
+      if (!svc) {
+        throw new ApiError(404, "Seçilen hizmet bu işletmede bulunamadı.");
+      }
+    }
+
     if (nextEnd <= nextStart) {
       throw new ApiError(400, "Bitiş saati başlangıç saatinden sonra olmalıdır.");
     }
@@ -100,23 +121,60 @@ export async function PATCH(
       }
     }
 
-    const updated = await prisma.appointment.update({
-      where: { id: existing.id },
-      data: {
-        status: timeChanged && !parsed.data.status ? "RESCHEDULED" : nextStatus,
-        startAt: nextStart,
-        endAt: nextEnd,
-        assignedMembershipId: nextMemberId,
-        ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
-      },
-      include: {
-        contact: true,
-        assignedMembership: { include: { user: { select: { name: true } } } },
-      },
+    const lockKey = `appt:${session.tenantId}:${nextMemberId}:${getIstanbulDateKey(nextStart)}`;
+    const updated = await prisma.$transaction(async (tx) => {
+      if (timeChanged && nextStatus !== "CANCELLED") {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+        const overlapping = await tx.appointment.findFirst({
+          where: {
+            tenantId: session.tenantId,
+            assignedMembershipId: nextMemberId,
+            id: { not: existing.id },
+            status: { not: "CANCELLED" },
+            startAt: { lt: nextEnd },
+            endAt: { gt: nextStart },
+          },
+          select: { id: true, title: true },
+        });
+        if (overlapping) {
+          throw new ApiError(
+            409,
+            `Seçilen saat aralığı "${overlapping.title}" randevusu ile çakışıyor.`,
+            "CONFLICT"
+          );
+        }
+      }
+
+      return tx.appointment.update({
+        where: { id: existing.id },
+        data: {
+          ...(parsed.data.title ? { title: parsed.data.title } : {}),
+          ...(parsed.data.serviceId !== undefined ? { serviceId: parsed.data.serviceId } : {}),
+          status: timeChanged && !parsed.data.status ? "RESCHEDULED" : nextStatus,
+          startAt: nextStart,
+          endAt: nextEnd,
+          assignedMembershipId: nextMemberId,
+          ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
+        },
+        include: {
+          contact: true,
+          assignedMembership: { include: { user: { select: { name: true } } } },
+          service: {
+            select: {
+              id: true,
+              name: true,
+              colorHex: true,
+              durationMinutes: true,
+              priceTry: true,
+            },
+          },
+        },
+      });
     });
 
+    let googleSync: { synced: boolean; mode: "DEMO" | "LIVE"; reason?: string } | null = null;
     if (updated.status === "CANCELLED") {
-      await syncAppointmentToGoogle(updated.id, "CANCEL");
+      googleSync = await syncAppointmentToGoogle(updated.id, "CANCEL");
       await scheduleAppointmentAutomations(session.tenantId, updated.id, "ON_CANCEL");
 
       // Smart Waitlist: notify next WAITING customer for this day via WhatsApp
@@ -154,7 +212,7 @@ export async function PATCH(
         }
       }
     } else if (timeChanged || updated.status === "RESCHEDULED") {
-      await syncAppointmentToGoogle(updated.id, "UPDATE");
+      googleSync = await syncAppointmentToGoogle(updated.id, "UPDATE");
       await scheduleAppointmentAutomations(session.tenantId, updated.id, "ON_RESCHEDULE");
     }
 
@@ -164,10 +222,10 @@ export async function PATCH(
       action: "APPOINTMENT_UPDATED",
       entityType: "APPOINTMENT",
       entityId: updated.id,
-      metadata: { status: updated.status, timeChanged },
+      metadata: { status: updated.status, timeChanged, googleSynced: googleSync?.synced ?? null },
     });
 
-    return NextResponse.json({ appointment: updated });
+    return NextResponse.json({ appointment: updated, googleSync });
   } catch (err) {
     return handleApiError(err);
   }
