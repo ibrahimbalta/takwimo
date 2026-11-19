@@ -18,9 +18,11 @@ import {
   ExternalLink,
   Calendar,
   ShieldCheck,
+  AlertTriangle,
+  CalendarPlus,
 } from "lucide-react";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
-import { formatDateTR, formatTimeTR } from "@/lib/utils";
+import { formatDateTR, formatTimeTR, getSubscriptionAlert } from "@/lib/utils";
 
 interface TenantMember {
   id: string;
@@ -34,6 +36,8 @@ interface TenantRow {
   slug: string;
   planTier: string;
   isSuspended: boolean;
+  subscriptionStartsAt: string | null;
+  subscriptionEndsAt: string | null;
   createdAt: string;
   _count: {
     memberships: number;
@@ -60,6 +64,7 @@ interface AdminData {
     totalTenants: number;
     activeTenants: number;
     suspendedTenants: number;
+    expiringSoonCount: number;
     totalUsers: number;
     totalAppointments: number;
     totalMessages: number;
@@ -69,14 +74,23 @@ interface AdminData {
   recentAuditLogs: AuditRow[];
 }
 
+function toInputDate(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
 export default function StandaloneAdminCrmPage() {
   const router = useRouter();
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"tenants" | "activity">("tenants");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED" | "PRO">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "EXPIRING" | "SUSPENDED" | "PRO">("ALL");
   const [selectedTenant, setSelectedTenant] = useState<TenantRow | null>(null);
+
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [savingDates, setSavingDates] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/super-admin/tenants");
@@ -90,6 +104,10 @@ export default function StandaloneAdminCrmPage() {
       if (selectedTenant) {
         const refreshed = json.tenants.find((t) => t.id === selectedTenant.id) ?? null;
         setSelectedTenant(refreshed);
+        if (refreshed) {
+          setEditStart(toInputDate(refreshed.subscriptionStartsAt));
+          setEditEnd(toInputDate(refreshed.subscriptionEndsAt));
+        }
       }
     }
     setLoading(false);
@@ -100,13 +118,54 @@ export default function StandaloneAdminCrmPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function updateTenant(tenantId: string, patch: { planTier?: string; isSuspended?: boolean }) {
+  function openTenantDrawer(t: TenantRow) {
+    setSelectedTenant(t);
+    setEditStart(toInputDate(t.subscriptionStartsAt));
+    setEditEnd(toInputDate(t.subscriptionEndsAt));
+  }
+
+  async function updateTenant(
+    tenantId: string,
+    patch: {
+      planTier?: string;
+      isSuspended?: boolean;
+      subscriptionStartsAt?: string | null;
+      subscriptionEndsAt?: string | null;
+    }
+  ) {
     const res = await fetch("/api/super-admin/tenants", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tenantId, ...patch }),
     });
     if (res.ok) await load();
+  }
+
+  async function handleSaveDates(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedTenant) return;
+    setSavingDates(true);
+    try {
+      await updateTenant(selectedTenant.id, {
+        subscriptionStartsAt: editStart ? new Date(`${editStart}T00:00:00+03:00`).toISOString() : null,
+        subscriptionEndsAt: editEnd ? new Date(`${editEnd}T23:59:59+03:00`).toISOString() : null,
+      });
+    } finally {
+      setSavingDates(false);
+    }
+  }
+
+  async function extend30Days(t: TenantRow) {
+    const base =
+      t.subscriptionEndsAt && new Date(t.subscriptionEndsAt).getTime() > Date.now()
+        ? new Date(t.subscriptionEndsAt)
+        : new Date();
+    const nextEnd = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await updateTenant(t.id, {
+      subscriptionStartsAt: t.subscriptionStartsAt ?? new Date().toISOString(),
+      subscriptionEndsAt: nextEnd.toISOString(),
+      isSuspended: false,
+    });
   }
 
   async function handleLogout() {
@@ -122,6 +181,11 @@ export default function StandaloneAdminCrmPage() {
     );
   }
 
+  const expiringTenants = data.tenants.filter((t) => {
+    const st = getSubscriptionAlert(t.subscriptionEndsAt).state;
+    return st === "EXPIRING_SOON" || st === "EXPIRED";
+  });
+
   const filteredTenants = data.tenants.filter((t) => {
     const q = search.trim().toLowerCase();
     const matchesSearch =
@@ -134,22 +198,26 @@ export default function StandaloneAdminCrmPage() {
     if (statusFilter === "ACTIVE") return !t.isSuspended;
     if (statusFilter === "SUSPENDED") return t.isSuspended;
     if (statusFilter === "PRO") return t.planTier === "PRO";
+    if (statusFilter === "EXPIRING") {
+      const st = getSubscriptionAlert(t.subscriptionEndsAt).state;
+      return st === "EXPIRING_SOON" || st === "EXPIRED";
+    }
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col lg:flex-row">
-      {/* Dedicated Standalone SaaS Admin Sidebar */}
-      <aside className="lg:w-68 bg-slate-950 text-slate-300 flex flex-col lg:fixed lg:inset-y-0 border-r border-slate-800 z-30">
-        <div className="h-16 px-5 flex items-center justify-between border-b border-slate-800">
+    <div className="min-h-screen bg-[#F3F6F5] flex flex-col lg:flex-row overflow-x-hidden">
+      {/* Desktop Dedicated SaaS Admin Sidebar */}
+      <aside className="hidden lg:flex lg:w-68 bg-slate-950 text-slate-300 flex-col lg:fixed lg:inset-y-0 border-r border-slate-800 z-30">
+        <div className="h-16 px-5 flex items-center border-b border-slate-800">
           <TakvimoLogo variant="dark" size="sm" subtitle="SaaS CRM Konsolu" />
         </div>
 
-        <nav className="p-3 flex lg:flex-col gap-1.5 overflow-x-auto lg:flex-1">
+        <nav className="p-3 flex flex-col gap-1.5 flex-1">
           <button
             type="button"
             onClick={() => setTab("tenants")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               tab === "tenants"
                 ? "bg-emerald-600 text-white"
                 : "text-slate-400 hover:bg-slate-900 hover:text-white"
@@ -162,7 +230,7 @@ export default function StandaloneAdminCrmPage() {
           <button
             type="button"
             onClick={() => setTab("activity")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               tab === "activity"
                 ? "bg-emerald-600 text-white"
                 : "text-slate-400 hover:bg-slate-900 hover:text-white"
@@ -174,14 +242,14 @@ export default function StandaloneAdminCrmPage() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white whitespace-nowrap"
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white"
           >
             <ExternalLink className="w-4 h-4 shrink-0" />
             <span>İşletme Paneli Görünümü</span>
           </Link>
         </nav>
 
-        <div className="hidden lg:block p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800">
           <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="text-xs font-bold text-white truncate">{data.admin.name}</p>
@@ -199,89 +267,105 @@ export default function StandaloneAdminCrmPage() {
       </aside>
 
       {/* Main CRM Workspace */}
-      <div className="flex-1 lg:pl-68 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-68 flex flex-col min-h-screen pb-24 lg:pb-8">
         {/* Top Executive Bar */}
-        <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <header className="h-14 sm:h-16 bg-white/95 backdrop-blur border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-700" />
-            <h1 className="font-bold text-slate-900 text-base sm:text-lg">
-              {tab === "tenants" ? "Abone İşletmeler & Gelir Yönetimi" : "Platform Denetim Kayıtları"}
-            </h1>
+            <div className="lg:hidden">
+              <TakvimoLogo variant="light" size="sm" />
+            </div>
+            <div className="hidden lg:flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-700" />
+              <h1 className="font-bold text-slate-900 text-base sm:text-lg">
+                {tab === "tenants" ? "Abone İşletmeler & Abonelik Takibi" : "Platform Denetim Kayıtları"}
+              </h1>
+            </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Çıkış
-          </button>
+
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-emerald-400 text-[11px] font-bold">
+            SaaS CRM
+          </span>
         </header>
 
-        <main className="p-4 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {/* Executive KPI Strip */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Tahmini Aylık Gelir (MRR)</p>
-                <p className="text-2xl font-extrabold text-emerald-700 mt-1.5">
-                  ₺{data.summary.estimatedMrrTry.toLocaleString("tr-TR")}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {data.summary.activeTenants} aktif abone işletme
-                </p>
+        <main className="p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-5">
+          {/* Expiring Soon / Expired Subscription Alert Banner */}
+          {expiringTenants.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs sm:text-sm text-amber-950">
+                  <p className="font-bold">
+                    {expiringTenants.length} işletmenin abonelik bitiş tarihi yaklaşıyor veya doldu!
+                  </p>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    {expiringTenants.map((t) => t.name).join(", ")} — yenileme veya süre uzatma için
+                    işletmeye tıklayın.
+                  </p>
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("tenants");
+                  setStatusFilter("EXPIRING");
+                }}
+                className="px-3.5 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold shrink-0 self-start sm:self-auto"
+              >
+                Yaklaşanları Filtrele
+              </button>
+            </div>
+          )}
+
+          {/* Symmetrical 2x2 Mobile / 4-col Desktop KPI Grid */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] sm:text-xs font-medium text-slate-500">Aylık Gelir (MRR)</p>
+                <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
               </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-2">
+                ₺{data.summary.estimatedMrrTry.toLocaleString("tr-TR")}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">{data.summary.activeTenants} aktif abone</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Kayıtlı İşletmeler</p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1.5">
-                  {data.summary.totalTenants}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {data.summary.suspendedTenants} askıda
-                </p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] sm:text-xs font-medium text-slate-500">Bitişi Yaklaşan</p>
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-                <Building2 className="w-5 h-5" />
-              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-amber-600 mt-2">
+                {data.summary.expiringSoonCount}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">Son 7 gün / dolan</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Toplam Ekip Kullanıcısı</p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1.5">
-                  {data.summary.totalUsers}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1">Tüm klinikler toplamı</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] sm:text-xs font-medium text-slate-500">Toplam Üye</p>
+                <Users className="w-4 h-4 text-indigo-600 shrink-0" />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                <Users className="w-5 h-5" />
-              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-2">
+                {data.summary.totalUsers}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">{data.summary.totalTenants} işletmede</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Randevu & Mesaj Hacmi</p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1.5">
-                  {data.summary.totalAppointments}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {data.summary.totalMessages} WhatsApp mesajı
-                </p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] sm:text-xs font-medium text-slate-500">Toplam Randevu</p>
+                <CalendarCheck2 className="w-4 h-4 text-blue-600 shrink-0" />
               </div>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-                <CalendarCheck2 className="w-5 h-5" />
-              </div>
+              <p className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-2">
+                {data.summary.totalAppointments}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">{data.summary.totalMessages} mesaj</p>
             </div>
           </div>
 
           {tab === "tenants" ? (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              {/* CRM Search & Filter Toolbar */}
+              {/* Search & Symmetrical Filter Pills */}
               <div className="p-4 sm:px-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="relative flex-1 max-w-md">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -289,22 +373,23 @@ export default function StandaloneAdminCrmPage() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="İşletme adı, slug veya e-posta ara..."
+                    placeholder="İşletme adı veya e-posta ara..."
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600"
                   />
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
                   {[
                     { id: "ALL", label: "Tümü" },
+                    { id: "EXPIRING", label: "Bitişi Yaklaşan" },
                     { id: "ACTIVE", label: "Aktif" },
-                    { id: "PRO", label: "Pro Plan" },
+                    { id: "PRO", label: "Pro" },
                     { id: "SUSPENDED", label: "Askıda" },
                   ].map((f) => (
                     <button
                       key={f.id}
                       type="button"
                       onClick={() => setStatusFilter(f.id as typeof statusFilter)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                         statusFilter === f.id
                           ? "bg-slate-900 text-white"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -316,42 +401,92 @@ export default function StandaloneAdminCrmPage() {
                 </div>
               </div>
 
-              {/* CRM Table */}
-              <div className="overflow-x-auto">
+              {/* Mobile App-Style Symmetrical Cards (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredTenants.map((t) => {
+                  const sub = getSubscriptionAlert(t.subscriptionEndsAt);
+                  const owner = t.memberships.find((m) => m.role === "OWNER") ?? t.memberships[0];
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => openTenantDrawer(t)}
+                      className="p-4 space-y-2.5 active:bg-slate-50 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-950 text-sm truncate">{t.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{owner?.user.email ?? t.slug}</p>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
+                            t.isSuspended
+                              ? "bg-rose-50 text-rose-700"
+                              : "bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {t.isSuspended ? "Askıda" : t.planTier}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">
+                          Bitiş: {t.subscriptionEndsAt ? formatDateTR(t.subscriptionEndsAt) : "Yok"}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+                            sub.state === "EXPIRED"
+                              ? "bg-rose-100 text-rose-800"
+                              : sub.state === "EXPIRING_SOON"
+                              ? "bg-amber-100 text-amber-900"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {sub.state === "EXPIRED"
+                            ? "Süresi Doldu"
+                            : sub.daysRemaining !== null
+                            ? `${sub.daysRemaining} gün kaldı`
+                            : "Tarihsiz"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop CRM Table (md+) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       <th className="py-3 px-6">İşletme</th>
                       <th className="py-3 px-4">Durum</th>
                       <th className="py-3 px-4">Plan</th>
+                      <th className="py-3 px-4">Abonelik Bitiş</th>
                       <th className="py-3 px-4">Kullanım</th>
-                      <th className="py-3 px-4">Entegrasyon</th>
                       <th className="py-3 px-6 text-right">İşlem</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {filteredTenants.map((t) => {
-                      const wa = t.whatsappAccounts[0];
+                      const sub = getSubscriptionAlert(t.subscriptionEndsAt);
                       const owner = t.memberships.find((m) => m.role === "OWNER") ?? t.memberships[0];
                       return (
                         <tr
                           key={t.id}
-                          onClick={() => setSelectedTenant(t)}
+                          onClick={() => openTenantDrawer(t)}
                           className="hover:bg-emerald-50/30 cursor-pointer transition-colors"
                         >
                           <td className="py-4 px-6">
                             <p className="font-bold text-slate-900">{t.name}</p>
-                            <p className="text-xs text-slate-500">
-                              {owner?.user.email ?? t.slug}
-                            </p>
+                            <p className="text-xs text-slate-500">{owner?.user.email ?? t.slug}</p>
                           </td>
                           <td className="py-4 px-4">
                             {t.isSuspended ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                                 Askıda
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 Aktif
                               </span>
                             )}
@@ -366,25 +501,29 @@ export default function StandaloneAdminCrmPage() {
                               <option value="PRO">Pro (₺2.490)</option>
                             </select>
                           </td>
+                          <td className="py-4 px-4 text-xs">
+                            <p className="font-semibold text-slate-800">
+                              {t.subscriptionEndsAt ? formatDateTR(t.subscriptionEndsAt) : "Belirlenmedi"}
+                            </p>
+                            <span
+                              className={`inline-block mt-0.5 px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+                                sub.state === "EXPIRED"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : sub.state === "EXPIRING_SOON"
+                                  ? "bg-amber-100 text-amber-900"
+                                  : "bg-emerald-50 text-emerald-700"
+                              }`}
+                            >
+                              {sub.state === "EXPIRED"
+                                ? "Süresi Doldu"
+                                : sub.daysRemaining !== null
+                                ? `${sub.daysRemaining} gün kaldı`
+                                : "Tarih girin"}
+                            </span>
+                          </td>
                           <td className="py-4 px-4 text-xs text-slate-600">
                             <span className="font-semibold text-slate-900">{t._count.memberships}</span> üye ·{" "}
                             <span className="font-semibold text-slate-900">{t._count.appointments}</span> randevu
-                          </td>
-                          <td className="py-4 px-4 text-xs">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`px-2 py-0.5 rounded-md font-semibold ${
-                                  wa?.mode === "LIVE"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : "bg-amber-50 text-amber-800"
-                                }`}
-                              >
-                                WA: {wa?.mode ?? "YOK"}
-                              </span>
-                              <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold">
-                                GCal: {t._count.googleCalendarConnections}
-                              </span>
-                            </div>
                           </td>
                           <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
                             <button
@@ -409,28 +548,20 @@ export default function StandaloneAdminCrmPage() {
                         </tr>
                       );
                     })}
-                    {filteredTenants.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="py-10 text-center text-sm text-slate-400">
-                          Aramanıza uygun işletme bulunamadı.
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           ) : (
-            /* Platform-Wide Audit Feed */
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {data.recentAuditLogs.map((log) => (
-                <div key={log.id} className="px-6 py-4 flex items-center justify-between gap-4 text-xs">
+                <div key={log.id} className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <p className="font-bold text-slate-900">
                       {log.tenant.name} · <span className="text-emerald-700">{log.action}</span>
                     </p>
                     <p className="text-slate-500 mt-0.5">
-                      Varlık: {log.entityType} {log.actor ? `· İşlemi Yapan: ${log.actor.name} (${log.actor.email})` : ""}
+                      {log.entityType} {log.actor ? `· ${log.actor.name}` : ""}
                     </p>
                   </div>
                   <span className="text-slate-400 shrink-0">
@@ -443,15 +574,66 @@ export default function StandaloneAdminCrmPage() {
         </main>
       </div>
 
-      {/* CRM Tenant Detail Slide-Over Drawer */}
+      {/* Mobile App Bottom Navigation Dock (< lg) */}
+      <nav className="lg:hidden fixed bottom-3 inset-x-3 bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl h-16 px-2 flex items-center justify-around z-40 shadow-2xl">
+        <button
+          type="button"
+          onClick={() => {
+            setTab("tenants");
+            setStatusFilter("ALL");
+          }}
+          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium ${
+            tab === "tenants" && statusFilter !== "EXPIRING" ? "text-emerald-400 bg-white/10" : "text-slate-400"
+          }`}
+        >
+          <Building2 className="w-5 h-5" />
+          <span>İşletmeler</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab("tenants");
+            setStatusFilter("EXPIRING");
+          }}
+          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium relative ${
+            tab === "tenants" && statusFilter === "EXPIRING" ? "text-amber-400 bg-white/10" : "text-slate-400"
+          }`}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <span>Uyarılar ({expiringTenants.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("activity")}
+          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium ${
+            tab === "activity" ? "text-emerald-400 bg-white/10" : "text-slate-400"
+          }`}
+        >
+          <Activity className="w-5 h-5" />
+          <span>Denetim</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium text-rose-400"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Çıkış</span>
+        </button>
+      </nav>
+
+      {/* CRM Tenant Detail & Subscription Date Editor Drawer */}
       {selectedTenant && (
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full p-6 shadow-2xl flex flex-col overflow-y-auto space-y-6">
+          <div className="w-full max-w-md bg-white h-full p-5 sm:p-6 shadow-2xl flex flex-col overflow-y-auto space-y-5">
             <div className="flex items-start justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">{selectedTenant.name}</h2>
                 <p className="text-xs text-slate-500">
-                  Slug: {selectedTenant.slug} · Kayıt: {formatDateTR(selectedTenant.createdAt)}
+                  {selectedTenant.slug} · Kayıt: {formatDateTR(selectedTenant.createdAt)}
                 </p>
               </div>
               <button
@@ -461,6 +643,59 @@ export default function StandaloneAdminCrmPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Subscription Start / End Date Management */}
+            <form
+              onSubmit={handleSaveDates}
+              className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                  Abonelik Tarihleri
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => extend30Days(selectedTenant)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-700 text-white text-[11px] font-semibold hover:bg-emerald-800"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  +30 Gün Uzat
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Başlangıç Tarihi
+                  </label>
+                  <input
+                    type="date"
+                    value={editStart}
+                    onChange={(e) => setEditStart(e.target.value)}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Bitiş Tarihi
+                  </label>
+                  <input
+                    type="date"
+                    value={editEnd}
+                    onChange={(e) => setEditEnd(e.target.value)}
+                    className="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingDates}
+                className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold"
+              >
+                {savingDates ? "Kaydediliyor..." : "Abonelik Tarihlerini Kaydet"}
+              </button>
+            </form>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
@@ -487,11 +722,11 @@ export default function StandaloneAdminCrmPage() {
                     key={m.id}
                     className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
                   >
-                    <div>
-                      <p className="font-semibold text-slate-900">{m.user.name}</p>
-                      <p className="text-slate-500">{m.user.email}</p>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 truncate">{m.user.name}</p>
+                      <p className="text-slate-500 truncate">{m.user.email}</p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-semibold text-slate-700">
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-semibold text-slate-700 shrink-0">
                       {m.role}
                     </span>
                   </div>
@@ -509,8 +744,7 @@ export default function StandaloneAdminCrmPage() {
                     <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp
                   </span>
                   <span className="font-semibold text-slate-900">
-                    {selectedTenant.whatsappAccounts[0]?.mode ?? "Bağlı Değil"} (
-                    {selectedTenant.whatsappAccounts[0]?.displayPhone ?? "-"})
+                    {selectedTenant.whatsappAccounts[0]?.mode ?? "Yok"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

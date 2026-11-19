@@ -45,11 +45,15 @@ export async function POST(req: NextRequest) {
     const slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
 
     const result = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const tenant = await tx.tenant.create({
         data: {
           name: parsed.data.businessName.trim(),
           slug,
           timezone: "Europe/Istanbul",
+          subscriptionStartsAt: now,
+          subscriptionEndsAt: in30Days,
         },
       });
 

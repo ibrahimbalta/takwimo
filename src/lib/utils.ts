@@ -37,3 +37,16 @@ export function formatDateTR(date: Date | string): string {
     timeZone: "Europe/Istanbul",
   }).format(d);
 }
+
+export function getSubscriptionAlert(endsAt: Date | string | null | undefined): {
+  daysRemaining: number | null;
+  state: "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "UNSET";
+} {
+  if (!endsAt) return { daysRemaining: null, state: "UNSET" };
+  const end = typeof endsAt === "string" ? new Date(endsAt) : endsAt;
+  const diffMs = end.getTime() - Date.now();
+  const daysRemaining = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  if (daysRemaining <= 0) return { daysRemaining, state: "EXPIRED" };
+  if (daysRemaining <= 7) return { daysRemaining, state: "EXPIRING_SOON" };
+  return { daysRemaining, state: "ACTIVE" };
+}

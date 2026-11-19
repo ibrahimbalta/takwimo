@@ -17,9 +17,11 @@ model Tenant {
   timezone          String   @default("Europe/Istanbul")
   workStartHour     String   @default("09:00")
   workEndHour       String   @default("18:00")
-  planTier          String   @default("STARTER") // STARTER | PRO
-  dataRetentionDays Int      @default(365)
-  isSuspended       Boolean  @default(false)
+  planTier             String    @default("STARTER") // STARTER | PRO
+  subscriptionStartsAt DateTime?
+  subscriptionEndsAt   DateTime?
+  dataRetentionDays    Int       @default(365)
+  isSuspended          Boolean   @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

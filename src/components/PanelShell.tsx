@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   HelpCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTR, getSubscriptionAlert } from "@/lib/utils";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
 
 interface SessionInfo {
@@ -60,6 +60,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"DEMO" | "LIVE">("DEMO");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -77,6 +78,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!active || !data?.session) return;
         setSession(data.session);
+        setSubscriptionEndsAt(data.tenant?.subscriptionEndsAt ?? null);
         setIntegrationMode(data.integrationMode === "LIVE" ? "LIVE" : "DEMO");
       })
       .catch(() => {});
@@ -94,6 +96,8 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     const userRole = session?.role ?? "STAFF";
     return item.roles.includes(userRole);
   });
+
+  const subAlert = getSubscriptionAlert(subscriptionEndsAt);
 
   return (
     <div className="min-h-screen bg-[#F3F6F5] flex flex-col md:flex-row">
@@ -245,6 +249,40 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
                 Anladım, Kapat
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Subscription Expiry Alert Banner inside Business Panel */}
+        {(subAlert.state === "EXPIRING_SOON" || subAlert.state === "EXPIRED") && (
+          <div
+            className={`mx-3 mt-3 md:mx-6 px-4 py-3 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-medium ${
+              subAlert.state === "EXPIRED"
+                ? "bg-rose-50 border-rose-200 text-rose-800"
+                : "bg-amber-50 border-amber-200 text-amber-900"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle
+                className={`w-4 h-4 shrink-0 ${
+                  subAlert.state === "EXPIRED" ? "text-rose-600" : "text-amber-600"
+                }`}
+              />
+              <span>
+                {subAlert.state === "EXPIRED"
+                  ? `Abonelik süreniz (${formatDateTR(subscriptionEndsAt!)}) dolmuştur. Kesintisiz kullanım için yenileyin.`
+                  : `Aboneliğinizin bitmesine ${subAlert.daysRemaining} gün kaldı (Bitiş: ${formatDateTR(subscriptionEndsAt!)}).`}
+              </span>
+            </div>
+            <Link
+              href="/billing"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 self-start sm:self-auto ${
+                subAlert.state === "EXPIRED"
+                  ? "bg-rose-600 text-white"
+                  : "bg-amber-600 text-white"
+              }`}
+            >
+              Aboneliği Gör
+            </Link>
           </div>
         )}
 

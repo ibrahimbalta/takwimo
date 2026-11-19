@@ -46,6 +46,12 @@ export async function GET() {
     ]);
 
     const activeTenants = tenants.filter((t) => !t.isSuspended);
+    const nowMs = Date.now();
+    const expiringSoonTenants = tenants.filter((t) => {
+      if (!t.subscriptionEndsAt) return false;
+      const days = Math.ceil((t.subscriptionEndsAt.getTime() - nowMs) / 86_400_000);
+      return days <= 7;
+    });
     const estimatedMrrTry = activeTenants.reduce(
       (sum, t) => sum + (PLAN_PRICES_TRY[t.planTier] ?? 1490),
       0
@@ -57,6 +63,7 @@ export async function GET() {
         totalTenants: tenants.length,
         activeTenants: activeTenants.length,
         suspendedTenants: tenants.length - activeTenants.length,
+        expiringSoonCount: expiringSoonTenants.length,
         totalUsers: tenants.reduce((sum, t) => sum + t._count.memberships, 0),
         totalAppointments: tenants.reduce((sum, t) => sum + t._count.appointments, 0),
         totalMessages,
@@ -74,6 +81,8 @@ const patchTenantSchema = z.object({
   tenantId: z.string().min(1),
   planTier: z.enum(["STARTER", "PRO"]).optional(),
   isSuspended: z.boolean().optional(),
+  subscriptionStartsAt: z.string().nullable().optional(),
+  subscriptionEndsAt: z.string().nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -89,6 +98,20 @@ export async function PATCH(req: NextRequest) {
       data: {
         ...(parsed.data.planTier ? { planTier: parsed.data.planTier } : {}),
         ...(parsed.data.isSuspended !== undefined ? { isSuspended: parsed.data.isSuspended } : {}),
+        ...(parsed.data.subscriptionStartsAt !== undefined
+          ? {
+              subscriptionStartsAt: parsed.data.subscriptionStartsAt
+                ? new Date(parsed.data.subscriptionStartsAt)
+                : null,
+            }
+          : {}),
+        ...(parsed.data.subscriptionEndsAt !== undefined
+          ? {
+              subscriptionEndsAt: parsed.data.subscriptionEndsAt
+                ? new Date(parsed.data.subscriptionEndsAt)
+                : null,
+            }
+          : {}),
       },
     });
 
