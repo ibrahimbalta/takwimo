@@ -8,9 +8,7 @@ export function LandingMobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [open, setOpen] = useState(false);
 
   const links = [
-    { href: "#nedir", label: "Proje Nedir?" },
-    { href: "#calisma-mantigi", label: "Çalışma Mantığı" },
-    { href: "#eklentiler", label: "Eklentiler" },
+    { href: "#nasil-calisir", label: "Nasıl Çalışır?" },
     { href: "#kimler-icin", label: "Kimler İçin?" },
     { href: "#fiyatlandirma", label: "Fiyatlandırma" },
     { href: "#sss", label: "SSS" },

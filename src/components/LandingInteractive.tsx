@@ -1,430 +1,286 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  MessageSquare,
-  UserCheck,
-  CalendarCheck2,
-  Zap,
-  CheckCircle2,
   CheckCheck,
-  ShieldCheck,
-  RefreshCw,
+  Calendar,
   Clock,
+  Check,
   ChevronDown,
-  Lock,
-  Sparkles,
+  UserCheck,
+  BellRing,
 } from "lucide-react";
 
-const WORKFLOW_STEPS = [
-  {
-    id: 0,
-    badge: "Adım 01 • Meta Webhook",
-    title: "Müşteri WhatsApp'tan Yazar",
-    subtitle: "Resmî Meta Business Cloud API üzerinden anlık ve güvenli teslim.",
-    icon: MessageSquare,
-    previewTitle: "Gelen Mesaj • +90 532 111 22 33",
-    previewBody:
-      '"Merhaba, yarın saat 14:00 için cilt bakımı randevunuz uygun mu?"',
-    previewMeta: [
-      "X-Hub-Signature-256 doğrulandı",
-      "waMessageId ile tekilleştirildi",
-      "24 saatlik yanıt penceresi başlatıldı",
-    ],
-  },
-  {
-    id: 1,
-    badge: "Adım 02 • Ortak Gelen Kutusu",
-    title: "Konuşma İlgili Uzmana Atanır",
-    subtitle: "Tüm ekip aynı numarayı görür; karışıklık olmadan sorumluluk atanır.",
-    icon: UserCheck,
-    previewTitle: "Konuşma Atama • Selin Arslan",
-    previewBody:
-      "Resepsiyon konuşmayı Elif Yılmaz'a atadı. Ekip içi çakışan yanıtlar engellendi.",
-    previewMeta: [
-      "Tek WhatsApp numarası, sınırsız ekip üyesi",
-      "Durum: Açık • Atanan: Elif Yılmaz",
-      "Gerçek zamanlı okundu/teslim takibi",
-    ],
-  },
-  {
-    id: 2,
-    badge: "Adım 03 • Google Calendar Sync",
-    title: "Çakışma Kontrolü & Takvime Kayıt",
-    subtitle: "Hem TAKVIMO hem uzmanın Google Calendar takvimi aynı anda kontrol edilir.",
-    icon: CalendarCheck2,
-    previewTitle: "Google Calendar • freeBusy Kontrolü",
-    previewBody:
-      "Yarın 14:00 - 15:00 aralığı müsait! Etkinlik Elif Yılmaz'ın Google takvimine işlendi.",
-    previewMeta: [
-      "OAuth 2.0 AES-256-GCM şifreli token",
-      "Double-booking (çift randevu) engellendi",
-      "İptal & ertelemede iki yönlü senkron",
-    ],
-  },
-  {
-    id: 3,
-    badge: "Adım 04 • Otomasyon Kuyruğu",
-    title: "Otomatik Onay & 24s Hatırlatma",
-    subtitle: "Müşteriye onay mesajı gider; randevu öncesi hatırlatma zamanlanır.",
-    icon: Zap,
-    previewTitle: "Otomatik WhatsApp Şablonu Gönderildi",
-    previewBody:
-      '"Merhaba Selin, yarın saat 14:00 randevunuz onaylanmıştır. Görüşmek üzere!"',
-    previewMeta: [
-      "Onay mesajı anında iletildi (✓✓)",
-      "24 saat öncesi için hatırlatma planlandı",
-      "Hata durumunda 3x otomatik yeniden deneme",
-    ],
-  },
+const DEMO_SLOTS = [
+  { time: "10:00", busy: true },
+  { time: "10:30", busy: true },
+  { time: "11:00", busy: false },
+  { time: "11:30", busy: false },
+  { time: "14:00", busy: false },
+  { time: "14:30", busy: false },
+  { time: "15:00", busy: true },
+  { time: "16:00", busy: false },
 ];
 
-const INTEGRATIONS = [
-  {
-    id: "whatsapp",
-    name: "Meta WhatsApp Cloud API",
-    tagline: "Resmî, kapanma riski olmayan kurumsal mesajlaşma altyapısı",
-    icon: MessageSquare,
-    highlights: [
-      "İşletmenin kendi WhatsApp Business numarasıyla doğrudan bağlantı",
-      "24 saatlik müşteri penceresi dolduğunda otomatik şablon (Template) koruması",
-      "Her gelen webhook için HMAC-SHA256 imza doğrulama ve idempotency",
-      "Gönderildi, teslim edildi ve okundu durumlarının canlı gösterimi",
-    ],
-    techSpecs: [
-      { label: "Güvenlik", value: "HMAC-SHA256" },
-      { label: "Politika", value: "24s Pencere Uyumu" },
-      { label: "Tekilleştirme", value: "waMessageId" },
-    ],
-  },
-  {
-    id: "google",
-    name: "Google Calendar OAuth 2.0",
-    tagline: "Her ekip üyesinin kendi Google takvimiyle çift yönlü senkronizasyon",
-    icon: CalendarCheck2,
-    highlights: [
-      "Ekip üyeleri kendi Google hesaplarını tek tıkla OAuth 2.0 ile bağlar",
-      "Randevu öncesi Google freeBusy API ile gerçek zamanlı doluluk kontrolü",
-      "TAKVIMO üzerinden yapılan erteleme ve iptaller Google'a anında işlenir",
-      "Token'lar veritabanında AES-256-GCM ile şifreli saklanır ve otomatik yenilenir",
-    ],
-    techSpecs: [
-      { label: "Şifreleme", value: "AES-256-GCM" },
-      { label: "Çakışma", value: "freeBusy Guard" },
-      { label: "Senkron", value: "İki Yönlü" },
-    ],
-  },
-  {
-    id: "automation",
-    name: "Otomasyon & Kuyruk Motoru",
-    tagline: "Randevu yaşam döngüsüne bağlı akıllı ve hatasız bildirimler",
-    icon: RefreshCw,
-    highlights: [
-      "Randevu oluşturulduğunda anında WhatsApp onay şablonu gönderimi",
-      "Randevudan 24 saat veya 2 saat önce otomatik hatırlatma planlaması",
-      "İptal veya saat değişikliğinde eski hatırlatmaların otomatik iptali",
-      "API kesintilerinde exponential backoff ile 3 kez yeniden deneme",
-    ],
-    techSpecs: [
-      { label: "Tetikleyici", value: "4 Yaşam Döngüsü" },
-      { label: "Yeniden Deneme", value: "3x Backoff" },
-      { label: "İdempotency", value: "Anahtar Korumalı" },
-    ],
-  },
-];
+/**
+ * Real, tactile interactive product workspace right on the homepage.
+ * Visitors can click a free time slot and watch the WhatsApp -> Google Calendar -> Auto-Confirmation flow live.
+ */
+export function InteractiveHeroWorkspace() {
+  const [selectedTime, setSelectedTime] = useState("14:00");
+  const [confirmedTime, setConfirmedTime] = useState<string | null>("14:00");
+  const [assignedTo, setAssignedTo] = useState("Dr. Elif Yılmaz");
+
+  function handleConfirmSlot() {
+    setConfirmedTime(selectedTime);
+  }
+
+  return (
+    <div className="rounded-3xl bg-white border border-slate-200/90 shadow-2xl shadow-slate-900/[0.06] overflow-hidden">
+      {/* Subtle Product Top Chrome */}
+      <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">
+            T
+          </div>
+          <span className="text-xs font-semibold text-slate-800">
+            Klinik Nova Estetik
+          </span>
+          <span className="text-slate-300">·</span>
+          <span className="text-xs text-slate-500">Ortak Gelen Kutusu & Takvim</span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Canlı Etkileşimli Önizleme — Bir saat seçip deneyin
+        </div>
+      </div>
+
+      {/* 3-Column Real Product Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+        {/* Left: Conversation List */}
+        <div className="lg:col-span-3 p-4 bg-slate-50/40 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-2 pb-1">
+            WhatsApp Mesajları (3)
+          </p>
+          <div className="p-3 rounded-xl bg-white border border-emerald-200 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900">Selin Arslan</span>
+              <span className="text-[10px] text-emerald-700 font-medium">Şimdi</span>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate">
+              Yarın öğleden sonra uygun mu?
+            </p>
+            <span className="inline-block text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+              {assignedTo}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl hover:bg-white/70 transition-colors space-y-1 opacity-75">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-800">Burak Yıldız</span>
+              <span className="text-[10px] text-slate-400">12 dk</span>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate">
+              Randevumu 16:00&apos;ya alabilir miyiz?
+            </p>
+            <span className="inline-block text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+              Atanmamış
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl hover:bg-white/70 transition-colors space-y-1 opacity-60 hidden sm:block">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-800">Ayşe Korkmaz</span>
+              <span className="text-[10px] text-slate-400">Dün</span>
+            </div>
+            <p className="text-[11px] text-slate-500 truncate">
+              Teşekkürler, görüşmek üzere.
+            </p>
+          </div>
+        </div>
+
+        {/* Center: Live WhatsApp Thread */}
+        <div className="lg:col-span-5 p-4 sm:p-5 flex flex-col justify-between bg-white min-h-[300px]">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <p className="text-sm font-bold text-slate-900">Selin Arslan</p>
+                <p className="text-[11px] text-slate-500">+90 532 111 22 33</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  aria-label="Uzman Seç"
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500"
+                >
+                  <option>Dr. Elif Yılmaz</option>
+                  <option>Mert Kaya</option>
+                  <option>Zeynep Demir</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Inbound Customer Message */}
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-100 text-slate-800 px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed">
+                  Merhaba, yarın öğleden sonra cilt bakımı için uygun saatiniz var mı?
+                  <span className="block text-[10px] text-slate-400 mt-1">13:42</span>
+                </div>
+              </div>
+
+              {/* Automated Confirmation Bubble */}
+              {confirmedTime && (
+                <div className="flex justify-end">
+                  <div className="max-w-[88%] rounded-2xl rounded-br-sm bg-emerald-700 text-white px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed shadow-xs">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-200 mb-1">
+                      <BellRing className="w-3 h-3" />
+                      Otomatik Onay Şablonu
+                    </span>
+                    <p>
+                      Merhaba Selin Hanım, yarın saat <strong>{confirmedTime}</strong> için{" "}
+                      <strong>{assignedTo}</strong> ile randevunuz onaylanmıştır.
+                    </p>
+                    <span className="flex items-center justify-end gap-1 text-[10px] text-emerald-200 mt-1">
+                      13:43 <CheckCheck className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              24 saatlik WhatsApp penceresi açık
+            </span>
+            <span className="text-emerald-700 font-medium">Hatırlatma: 24s önce</span>
+          </div>
+        </div>
+
+        {/* Right: Live Google Calendar Slot Picker */}
+        <div className="lg:col-span-4 p-4 sm:p-5 bg-slate-50/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-700" />
+              <span className="text-xs font-bold text-slate-900">Google Calendar Müsaitlik</span>
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+              Yarın
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {DEMO_SLOTS.map((slot) => {
+              const isSelected = selectedTime === slot.time;
+              if (slot.busy) {
+                return (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    disabled
+                    className="py-2 rounded-lg text-[11px] font-medium bg-rose-50/80 text-rose-400 border border-rose-100 line-through cursor-not-allowed"
+                  >
+                    {slot.time}
+                  </button>
+                );
+              }
+              return (
+                <button
+                  key={slot.time}
+                  type="button"
+                  onClick={() => setSelectedTime(slot.time)}
+                  className={`py-2 rounded-lg text-[11px] font-semibold border transition-all ${
+                    isSelected
+                      ? "bg-emerald-700 text-white border-emerald-700 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:text-emerald-800"
+                  }`}
+                >
+                  {slot.time}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleConfirmSlot}
+            className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>{selectedTime} Randevusunu Onayla & Takvime İşle</span>
+          </button>
+
+          {confirmedTime && (
+            <div className="p-3 rounded-xl bg-white border border-emerald-200/80 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="font-semibold text-slate-800">
+                  Google Takvim&apos;e İşlendi ({confirmedTime})
+                </span>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                Senkron
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const FAQS = [
   {
     q: "Ekip üyesi ekledikçe ekstra ücret öder miyim?",
-    a: "Hayır. TAKVIMO kullanıcı başına ücret almaz. İşletme bazlı tek abonelik ile tüm çalışanlarınızı ücretsiz davet edebilirsiniz.",
+    a: "Hayır. TAKVIMO kullanıcı başına ücret almaz. İşletme bazlı tek abonelik ile tüm doktorlarınızı, uzmanlarınızı ve resepsiyon ekibinizi ücretsiz davet edebilirsiniz.",
   },
   {
     q: "Kişisel WhatsApp numaramızla mı yoksa resmî API ile mi çalışır?",
-    a: "Resmî Meta WhatsApp Business Cloud API ile çalışır. Bu sayede numaranız kapanma riski olmadan, şablon kurallarına tam uyumlu şekilde yönetilir.",
+    a: "Resmî Meta WhatsApp Business Cloud API ile çalışır. Numaranız kapanma riski olmadan, 24 saatlik pencere ve onaylı şablon kurallarına tam uyumlu şekilde yönetilir.",
   },
   {
     q: "Her çalışan kendi Google Calendar hesabını bağlayabilir mi?",
-    a: "Evet. Her ekip üyesi kendi Google hesabını bağlar; randevu verilirken yalnızca o üyenin takvimindeki uygun saatler kontrol edilir.",
+    a: "Evet. Her ekip üyesi kendi Google hesabını tek tıkla bağlar; randevu verilirken yalnızca o çalışanın takvimindeki boş saatler yeşil, dolu saatler kırmızı olarak görünür.",
   },
   {
-    q: "TAKVIMO bir CRM veya muhasebe programı mı?",
-    a: "Hayır. TAKVIMO kasıtlı olarak sade tutulmuştur. Stok, fatura, muhasebe veya karmaşık satış modülleri içermez; yalnızca WhatsApp iletişimi ve randevu takvimi işini kusursuz yapar.",
+    q: "TAKVIMO karmaşık bir CRM veya muhasebe programı mı?",
+    a: "Hayır. Stok, fatura, muhasebe veya gereksiz satış modülleri içermez. Yalnızca WhatsApp iletişimi ve Google Calendar randevu koordinasyonunu kusursuz yapmak için tasarlanmıştır.",
   },
 ];
 
-export function LandingInteractive() {
-  const [activeStep, setActiveStep] = useState(0);
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [activeIntegration, setActiveIntegration] = useState("whatsapp");
+export function LandingFaqAccordion() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  useEffect(() => {
-    if (!autoPlay) return;
-    const timer = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % WORKFLOW_STEPS.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [autoPlay]);
-
-  const currentStep = WORKFLOW_STEPS[activeStep];
-  const StepIcon = currentStep.icon;
-  const currentInteg = INTEGRATIONS.find((i) => i.id === activeIntegration) ?? INTEGRATIONS[0];
-  const IntegIcon = currentInteg.icon;
-
   return (
-    <>
-      {/* Interactive Working Logic Section */}
-      <section id="calisma-mantigi" className="bg-white border-y border-slate-200 py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              <Sparkles className="w-3.5 h-3.5" />
-              Canlı Çalışma Mantığı
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-bold text-slate-900">
-              Bir WhatsApp Mesajı Nasıl Çakışmasız Randevuya Dönüşür?
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600">
-              Aşağıdaki adımlara tıklayarak TAKVIMO&apos;nun arka planda nasıl çalıştığını canlı
-              olarak inceleyin.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            {/* Left: Interactive Step Selector */}
-            <div className="lg:col-span-6 space-y-3">
-              {WORKFLOW_STEPS.map((step, idx) => {
-                const Icon = step.icon;
-                const isActive = idx === activeStep;
-                return (
-                  <button
-                    key={step.id}
-                    type="button"
-                    onClick={() => {
-                      setAutoPlay(false);
-                      setActiveStep(idx);
-                    }}
-                    className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-start gap-4 ${
-                      isActive
-                        ? "bg-emerald-50/80 border-emerald-500 shadow-md shadow-emerald-900/5"
-                        : "bg-slate-50/70 border-slate-200 hover:bg-white hover:border-emerald-200"
-                    }`}
-                  >
-                    <div
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        isActive
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "bg-white border border-slate-200 text-slate-500"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <span
-                        className={`text-[11px] font-bold uppercase tracking-wider ${
-                          isActive ? "text-emerald-700" : "text-slate-400"
-                        }`}
-                      >
-                        {step.badge}
-                      </span>
-                      <h3 className="font-bold text-slate-900 text-base">{step.title}</h3>
-                      <p className="text-xs sm:text-sm text-slate-600">{step.subtitle}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Right: Live Animated Preview Panel */}
-            <div className="lg:col-span-6 flex">
-              <div className="w-full rounded-3xl bg-emerald-950 text-white p-6 sm:p-8 flex flex-col justify-between shadow-xl border border-emerald-800 relative overflow-hidden">
-                <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-emerald-500/15 blur-2xl pointer-events-none" />
-                <div className="relative z-10 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold">
-                      <StepIcon className="w-3.5 h-3.5" />
-                      {currentStep.badge}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {WORKFLOW_STEPS.map((s, i) => (
-                        <span
-                          key={s.id}
-                          className={`h-1.5 rounded-full transition-all ${
-                            i === activeStep ? "w-6 bg-emerald-400" : "w-1.5 bg-emerald-800"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-5 space-y-3 transition-all">
-                    <div className="flex items-center justify-between text-xs text-emerald-200">
-                      <span className="font-semibold">{currentStep.previewTitle}</span>
-                      <Clock className="w-3.5 h-3.5" />
-                    </div>
-                    <p className="text-sm sm:text-base font-medium text-white leading-relaxed">
-                      {currentStep.previewBody}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                      Arka Plan Doğrulamaları
-                    </p>
-                    {currentStep.previewMeta.map((meta) => (
-                      <div
-                        key={meta}
-                        className="flex items-center gap-2.5 text-xs sm:text-sm text-emerald-50 bg-emerald-900/50 border border-emerald-800/80 rounded-xl px-3.5 py-2.5"
-                      >
-                        <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span>{meta}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="relative z-10 pt-6 mt-6 border-t border-emerald-800/80 flex items-center justify-between text-xs text-emerald-300">
-                  <span>Adım {activeStep + 1} / 4</span>
-                  <button
-                    type="button"
-                    onClick={() => setAutoPlay((p) => !p)}
-                    className="px-3 py-1 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-emerald-100 font-medium transition-colors"
-                  >
-                    {autoPlay ? "Otomatik Akışı Durdur" : "Otomatik Akışı Başlat"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Integrations / Plugins Showcase */}
-      <section id="eklentiler" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 w-full">
-        <div className="text-center max-w-3xl mx-auto mb-10 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-            Eklentiler & Entegrasyon Mimarisi
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900">
-            Resmî API Bağlantılarıyla Kesintisiz Altyapı
-          </h2>
-          <p className="text-sm sm:text-base text-slate-600">
-            TAKVIMO karmaşık eklenti marketleri yerine yalnızca işinizi doğrudan hızlandıran 3
-            çekirdek entegrasyona odaklanır.
-          </p>
-        </div>
-
-        {/* Integration Tabs */}
-        <div className="flex flex-wrap justify-center gap-2.5 mb-8">
-          {INTEGRATIONS.map((integ) => {
-            const Icon = integ.icon;
-            const selected = integ.id === activeIntegration;
-            return (
-              <button
-                key={integ.id}
-                type="button"
-                onClick={() => setActiveIntegration(integ.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  selected
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                    : "bg-white border border-slate-200 text-slate-700 hover:border-emerald-300"
+    <div className="divide-y divide-slate-200 border-y border-slate-200">
+      {FAQS.map((item, idx) => {
+        const isOpen = openFaq === idx;
+        return (
+          <div key={item.q} className="py-5">
+            <button
+              type="button"
+              onClick={() => setOpenFaq(isOpen ? null : idx)}
+              className="w-full text-left flex items-center justify-between gap-4 group"
+            >
+              <span className="font-semibold text-slate-900 text-sm sm:text-base group-hover:text-emerald-700 transition-colors">
+                {item.q}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+                  isOpen ? "rotate-180 text-emerald-700" : ""
                 }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{integ.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Active Integration Detail Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                <IntegIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">{currentInteg.name}</h3>
-                <p className="text-sm text-slate-500">{currentInteg.tagline}</p>
-              </div>
-            </div>
-
-            <ul className="space-y-3">
-              {currentInteg.highlights.map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+              />
+            </button>
+            {isOpen && (
+              <p className="mt-3 text-sm text-slate-600 leading-relaxed pr-8">{item.a}</p>
+            )}
           </div>
-
-          <div className="lg:col-span-5 bg-slate-50 rounded-2xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Teknik Güvence Özeti</span>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {currentInteg.techSpecs.map((spec) => (
-                <div
-                  key={spec.label}
-                  className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center justify-between"
-                >
-                  <span className="text-xs font-medium text-slate-500">{spec.label}</span>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                    {spec.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-1">
-              <Lock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>API anahtarı girilmeden sistem asla sahte canlı bağlantı göstermez.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive FAQ Accordion */}
-      <section id="sss" className="max-w-4xl mx-auto px-4 sm:px-6 pb-16 w-full space-y-8">
-        <div className="text-center space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-            Merak Edilenler
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Sıkça Sorulan Sorular</h2>
-        </div>
-
-        <div className="space-y-3">
-          {FAQS.map((item, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <div
-                key={item.q}
-                className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
-                >
-                  <span className="font-bold text-slate-900 text-sm sm:text-base">{item.q}</span>
-                  <ChevronDown
-                    className={`w-5 h-5 text-emerald-600 shrink-0 transition-transform duration-200 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {isOpen && (
-                  <div className="px-6 pb-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-    </>
+        );
+      })}
+    </div>
   );
 }

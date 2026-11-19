@@ -1,66 +1,101 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
-import { LandingInteractive } from "@/components/LandingInteractive";
+import {
+  InteractiveHeroWorkspace,
+  LandingFaqAccordion,
+} from "@/components/LandingInteractive";
 import { LandingMobileMenu } from "@/components/LandingMobileMenu";
 import {
-  Users,
-  CheckCircle2,
   ArrowRight,
-  Clock,
-  CheckCheck,
-  Sparkles,
+  Check,
+  MessageSquare,
+  CalendarCheck2,
+  BellRing,
+  ShieldCheck,
+  Users,
   Stethoscope,
   Scissors,
   Brain,
   HeartPulse,
   PawPrint,
   Briefcase,
-  XCircle,
-  Lock,
 } from "lucide-react";
+
+const PILLARS = [
+  {
+    num: "01",
+    icon: MessageSquare,
+    title: "WhatsApp Ortak Gelen Kutusu",
+    description:
+      "Resmî Meta WhatsApp Business Cloud API ile işletmenizin tek numarasını tüm ekibiniz aynı ekrandan yönetir. Konuşmaları ilgili çalışana atayın, 24 saatlik pencere ve şablon kurallarına tam uyumla yanıt verin.",
+    bullets: [
+      "Tek numara, sınırsız ekip üyesi",
+      "Konuşma atama ve teslim/okundu takibi",
+      "24 saatlik Meta pencere koruması",
+    ],
+  },
+  {
+    num: "02",
+    icon: CalendarCheck2,
+    title: "Google Calendar Çakışma Koruması",
+    description:
+      "Her doktor veya uzman kendi Google hesabını tek tıkla bağlar. Randevu oluştururken hem TAKVIMO hem Google Calendar anlık taranır; dolu saatler kırmızı, boş saatler yeşil görünür.",
+    bullets: [
+      "30 dakikalık canlı boş/dolu slot seçici",
+      "Çift rezervasyonu (double-booking) sıfırlar",
+      "İptal ve ertelemelerde iki yönlü senkron",
+    ],
+  },
+  {
+    num: "03",
+    icon: BellRing,
+    title: "Otomatik Onay & Hatırlatmalar",
+    description:
+      "Randevu kaydedildiği anda müşterinize WhatsApp onay mesajı gider. Randevu öncesinde otomatik hatırlatma gönderilerek unutulan randevular ve gelir kayıpları önlenir.",
+    bullets: [
+      "Anlık onay, iptal ve değişiklik bildirimleri",
+      "24 saat öncesi otomatik hatırlatma kuyruğu",
+      "Gönderim hatalarında otomatik yeniden deneme",
+    ],
+  },
+];
 
 const SECTORS = [
   {
     icon: Stethoscope,
-    title: "Diş Klinikleri & Sağlık Merkezleri",
+    title: "Diş Klinikleri & Poliklinikler",
     description:
-      "Hasta mesajlarını tek numaradan karşılayın, hekimlerin Google Calendar takvimlerine göre çakışmasız randevu planlayın.",
-    tag: "Hekim Bazlı Takvim",
+      "Resepsiyon gelen WhatsApp mesajlarını karşılar; her hekimin kendi Google Takvimine göre çakışmasız randevu planlar.",
   },
   {
     icon: Scissors,
     title: "Güzellik & Estetik Merkezleri",
     description:
-      "Cilt bakımı, lazer ve işlem randevularını WhatsApp sohbetinden anında oluşturun; otomatik hatırlatma ile gelmeme oranını düşürün.",
-    tag: "Otomatik Hatırlatma",
+      "Cilt bakımı ve işlem randevularını sohbetten çıkmadan oluşturun; otomatik hatırlatma ile gelmeme oranını azaltın.",
   },
   {
     icon: Brain,
     title: "Psikolog & Danışmanlık Ofisleri",
     description:
-      "Danışan mahremiyetine uygun KVKK odaklı iletişim kurun; seans saatlerini uzmanların kişisel Google takvimleriyle eşitleyin.",
-    tag: "KVKK Uyumlu",
+      "Danışan verilerini KVKK ilkelerine uygun yönetin; seans saatlerini uzmanların kişisel takvimleriyle eşitleyin.",
   },
   {
     icon: HeartPulse,
-    title: "Fizyoterapi & Diyetisyen Klinikleri",
+    title: "Fizyoterapi & Diyetisyenler",
     description:
-      "Tekrarlayan kontrol randevularını düzenleyin, saat değişikliklerinde müşteriye anında WhatsApp bilgilendirmesi gönderin.",
-    tag: "Hızlı Erteleme",
+      "Kontrol seanslarını kolayca erteleyin; saat değişikliği yapıldığında danışana anında WhatsApp bilgilendirmesi gitsin.",
   },
   {
     icon: PawPrint,
     title: "Veteriner Klinikleri",
     description:
-      "Aşı, muayene ve operasyon randevularını ekibiniz arasında paylaştırın; tüm veterinerlerin müsaitliğini tek ekranda görün.",
-    tag: "Ortak Gelen Kutusu",
+      "Muayene, aşı ve operasyon takvimini tüm veterinerler arasında tek panelde düzenli biçimde paylaşın.",
   },
   {
     icon: Briefcase,
-    title: "Butik Stüdyolar & Özel Hizmetler",
+    title: "Stüdyolar & Randevulu Hizmetler",
     description:
-      "Pilates stüdyoları, kuaförler ve randevu ile çalışan tüm KOBİ'ler için karmaşadan uzak, hızlı koordinasyon.",
-    tag: "Sınırsız Ekip",
+      "Pilates stüdyoları, kuaförler ve randevu ile çalışan tüm KOBİ'ler için karmaşık CRM'lere sade alternatif.",
   },
 ];
 
@@ -68,302 +103,277 @@ export default async function HomePage() {
   const session = await getSession();
 
   return (
-    <div className="min-h-screen bg-[#F4F7F6] text-slate-900 flex flex-col overflow-x-hidden">
-      {/* Floating Glass Pill Navbar */}
-      <div className="sticky top-3 z-30 px-3 sm:px-6">
-        <header className="max-w-6xl mx-auto h-15 px-4 sm:px-6 rounded-full bg-white/85 backdrop-blur-xl border border-emerald-200/70 shadow-lg shadow-slate-950/5 flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col overflow-x-hidden">
+      {/* Clean, Understated Editorial Navbar */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center text-slate-950 font-black text-sm shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold text-sm">
               T
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="font-extrabold text-slate-950 tracking-tight text-base">
-                TAKVIMO
-              </span>
-              <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                OS
-              </span>
-            </div>
+            <span className="font-bold text-slate-950 tracking-tight text-lg">TAKVIMO</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-600">
-            <a href="#nedir" className="hover:text-emerald-700 transition-colors">
-              Proje Nedir?
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-600">
+            <a href="#nasil-calisir" className="hover:text-slate-950 transition-colors">
+              Nasıl Çalışır?
             </a>
-            <a href="#calisma-mantigi" className="hover:text-emerald-700 transition-colors">
-              Çalışma Mantığı
-            </a>
-            <a href="#eklentiler" className="hover:text-emerald-700 transition-colors">
-              Eklentiler
-            </a>
-            <a href="#kimler-icin" className="hover:text-emerald-700 transition-colors">
+            <a href="#kimler-icin" className="hover:text-slate-950 transition-colors">
               Kimler İçin?
             </a>
-            <a href="#fiyatlandirma" className="hover:text-emerald-700 transition-colors">
+            <a href="#fiyatlandirma" className="hover:text-slate-950 transition-colors">
               Fiyatlandırma
+            </a>
+            <a href="#sss" className="hover:text-slate-950 transition-colors">
+              SSS
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {session ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-950 text-emerald-400 text-xs sm:text-sm font-bold shadow-sm hover:bg-slate-900 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors"
               >
                 <span>Panele Git</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
+                  className="hidden sm:inline-flex px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-950 transition-colors"
                 >
                   Giriş Yap
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-950 text-emerald-400 text-xs sm:text-sm font-bold shadow-sm hover:bg-slate-900 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors"
                 >
                   <span>Ücretsiz Dene</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </>
             )}
             <LandingMobileMenu isLoggedIn={Boolean(session)} />
           </div>
-        </header>
-      </div>
+        </div>
+      </header>
 
-      {/* Millennium Hero Section */}
-      <section className="relative overflow-hidden pt-8 pb-16 md:pt-14 md:pb-24">
-        <img
-          src="/images/hero-bg.svg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none opacity-90"
-        />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950 text-emerald-300 text-[11px] font-mono font-bold tracking-wide shadow-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>TAKVIMO // WHATSAPP + GOOGLE CALENDAR OS</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black text-slate-950 tracking-[-0.03em] leading-[1.06]">
-              Tek gelen kutusu.{" "}
-              <span className="bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 bg-clip-text text-transparent">
-                Tek takvim.
-              </span>{" "}
-              Tek ekip.
-            </h1>
-
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              <strong>TAKVIMO</strong>, müşterileriyle WhatsApp üzerinden randevu planlayan
-              işletmeler için tasarlanmış yeni nesil koordinasyon merkezidir. Tüm konuşmaları
-              tek merkezde toplayın, ekibinizin Google Calendar takvimini anlık senkronize edin.
+      {/* Hero Section: Generous Whitespace + Real Interactive Workspace */}
+      <section className="pt-14 pb-16 sm:pt-20 sm:pb-24 bg-gradient-to-b from-slate-50/80 via-white to-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12 sm:space-y-16">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <p className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold">
+              Resmî Meta WhatsApp Cloud API · Google Calendar Entegrasyonu
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+            <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-bold text-slate-950 tracking-[-0.03em] leading-[1.1]">
+              WhatsApp&apos;tan gelen her mesajı,{" "}
+              <span className="text-emerald-700">çakışmasız randevuya</span> dönüştürün.
+            </h1>
+
+            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+              <strong className="font-semibold text-slate-900">
+                Tek gelen kutusu. Tek takvim. Tek ekip.
+              </strong>{" "}
+              Randevu odaklı klinikler ve işletmeler için geliştirilmiş sade iletişim ve takvim
+              platformu. Kullanıcı başına ekstra ücret olmadan tüm ekibiniz aynı anda çalışır.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <Link
                 href={session ? "/dashboard" : "/login"}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-950 text-emerald-400 text-sm font-bold shadow-xl shadow-slate-950/15 hover:bg-slate-900 hover:-translate-y-0.5 transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-sm transition-colors"
               >
-                <span>{session ? "Panele Devam Et" : "Canlı Demo ile Hemen İncele"}</span>
+                <span>{session ? "Panele Devam Et" : "Ücretsiz Hesap Oluştur"}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <a
-                href="#calisma-mantigi"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-sm font-bold hover:border-emerald-400 transition-colors"
+              <Link
+                href="/login"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm font-semibold transition-colors"
               >
-                Çalışma Mantığını Gör
-              </a>
+                Canlı Demo Hesabıyla İncele
+              </Link>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-4">
-              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
-                <p className="text-xl sm:text-2xl font-black text-emerald-600">0₺</p>
-                <p className="text-[11px] font-medium text-slate-500">Kişi başı ücret</p>
-              </div>
-              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
-                <p className="text-xl sm:text-2xl font-black text-slate-900">30 dk</p>
-                <p className="text-[11px] font-medium text-slate-500">Akıllı slot seçimi</p>
-              </div>
-              <div className="rounded-2xl bg-white/85 backdrop-blur border border-slate-200/80 p-3.5">
-                <p className="text-xl sm:text-2xl font-black text-teal-600">%100</p>
-                <p className="text-[11px] font-medium text-slate-500">Meta API & KVKK</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Dark-Obsidian Bezel Product Showcase */}
-          <div className="lg:col-span-6">
-            <div className="relative rounded-[30px] bg-slate-950 p-2.5 sm:p-3 shadow-2xl shadow-emerald-950/20 ring-1 ring-emerald-400/30">
-              <div className="flex items-center gap-1.5 px-3 pb-2.5 pt-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
-                <span className="ml-2 text-[10px] font-mono text-slate-400">
-                  takwimo.vercel.app // live-sync
-                </span>
-              </div>
-              <div className="overflow-hidden rounded-2xl border border-slate-800 bg-white">
-                <img
-                  src="/images/hero-dashboard.jpg"
-                  alt="TAKVIMO WhatsApp Business ve Google Calendar Birleşik Paneli"
-                  className="w-full h-auto object-cover"
-                />
-              </div>
-
-              {/* Animated Floating Top Badge */}
-              <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur border border-emerald-200 shadow-xl absolute -top-5 -left-5 animate-float-slow">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-slate-900">
-                  WhatsApp → Google Calendar Anlık Senkron
-                </span>
-              </div>
-
-              {/* Animated Floating Bottom Badge */}
-              <div className="hidden sm:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-xl absolute -bottom-5 -right-3 animate-float-delayed">
-                <CheckCheck className="w-4 h-4 shrink-0" />
-                <div className="text-[11px] leading-tight">
-                  <p className="font-extrabold">Otomatik Onay & Hatırlatma</p>
-                  <p className="font-semibold opacity-80">Çakışma kontrolü aktif</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section: Proje Nedir? (Problem vs Solution) */}
-      <section id="nedir" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 w-full">
-        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-            Proje Nedir?
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900">
-            Randevu Kaosunu Bitiren Sade İletişim ve Takvim Köprüsü
-          </h2>
-          <p className="text-sm sm:text-base text-slate-600">
-            KOBİ&apos;lerin %80&apos;i müşterileriyle WhatsApp&apos;tan konuşup randevuları ayrı bir
-            deftere veya takvime yazmaya çalışıyor. TAKVIMO bu iki dünyayı tek merkezde birleştirir.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold">
-              <XCircle className="w-4 h-4" />
-              <span>TAKVIMO Öncesi Dağınık Süreç</span>
-            </div>
-            <ul className="space-y-3 text-sm text-slate-600">
-              <li className="flex items-start gap-2.5">
-                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>WhatsApp konuşmaları tek bir telefonda kalır, ekip birbirinden habersizdir.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>Aynı uzmana aynı saatte çakışan iki randevu yazılabilir.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>Hatırlatma mesajları manuel atılır; unutulan randevular gelir kaybı yaratır.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>Büyük CRM yazılımları gereksiz modüllerle ekibi yorar ve kişi başı ücret ister.</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-emerald-950 text-white rounded-2xl border border-emerald-800 p-6 sm:p-8 space-y-4 shadow-lg">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>TAKVIMO ile Düzenli İşleyiş</span>
-            </div>
-            <ul className="space-y-3 text-sm text-emerald-50/90">
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Tüm ekip aynı WhatsApp Business gelen kutusunu paylaşır ve konuşma atar.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Her uzmanın Google Calendar takvimi kontrol edilerek çakışma sıfırlanır.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Onay, hatırlatma, iptal ve erteleme mesajları WhatsApp&apos;tan otomatik gider.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Kullanıcı başı ücret olmadan yalnızca ihtiyacınız olan randevu araçlarını sunar.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Working Logic + Integrations Showcase + FAQ */}
-      <LandingInteractive />
-
-      {/* Section: Kimlere Hitap Eder? */}
-      <section id="kimler-icin" className="bg-white border-y border-slate-200 py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-emerald-50/60 rounded-3xl border border-emerald-100 p-6 sm:p-10">
-            <div className="lg:col-span-5">
-              <div className="overflow-hidden rounded-2xl border border-emerald-200/80 shadow-lg">
-                <img
-                  src="/images/team-clinic.jpg"
-                  alt="TAKVIMO kullanan modern klinik ekibi"
-                  className="w-full h-auto object-cover"
-                />
-              </div>
-            </div>
-            <div className="lg:col-span-7 space-y-4">
-              <span className="inline-block text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
-                Kimlere Hitap Eder?
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-xs text-slate-500 font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                Kullanıcı başı 0₺ ücret
               </span>
-              <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 leading-tight">
-                Randevu ile Çalışan Tüm Hizmet İşletmeleri İçin Tasarlandı
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                Kurulum 5 dakika
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                KVKK uyumlu veri yönetimi
+              </span>
+            </div>
+          </div>
+
+          {/* Interactive Live Product Workspace */}
+          <InteractiveHeroWorkspace />
+        </div>
+      </section>
+
+      {/* Quiet Editorial Statement: What TAKVIMO Is & Isn't */}
+      <section className="py-16 sm:py-20 bg-[#FAFAF9] border-y border-slate-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          <div className="lg:col-span-5 space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+              Neden TAKVIMO?
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight leading-snug">
+              Gereksiz modüllerle dolu bir CRM değil; yalnızca randevu işinizi kusursuz yapan bir
+              sistem.
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+              İşletmelerin büyük çoğunluğu müşterisiyle WhatsApp&apos;tan konuşup randevuları ayrı
+              bir deftere veya kişisel telefonlara yazmaya çalışıyor. TAKVIMO bu dağınıklığı tek
+              bir ekranda bitirir.
+            </p>
+          </div>
+
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Eski Yöntem
+              </p>
+              <ul className="space-y-2.5 text-sm text-slate-600">
+                <li>• WhatsApp tek bir telefonda kalır, ekip birbirinden habersizdir.</li>
+                <li>• Aynı uzmana aynı saatte çakışan iki randevu yazılabilir.</li>
+                <li>• Hatırlatmalar unutulur, gelmeyen müşteri gelir kaybı yaratır.</li>
+                <li>• Çalışan eklendikçe kişi başı lisans faturası katlanır.</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-emerald-200 p-6 space-y-3 shadow-xs">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                TAKVIMO ile
+              </p>
+              <ul className="space-y-2.5 text-sm text-slate-800">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Tüm ekip tek WhatsApp numarasını ortak yönetir.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Google Calendar ile gerçek zamanlı çakışma koruması çalışır.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Onay, 24s hatırlatma ve değişiklikler otomatik gönderilir.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Ekibiniz kaç kişi olursa olsun tek sabit işletme ücreti ödersiniz.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 Core Pillars */}
+      <section id="nasil-calisir" className="py-16 sm:py-24 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        <div className="max-w-2xl mb-14 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+            Ürünün 3 Temel Sütunu
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight">
+            Sade, hızlı ve yalnızca randevu koordinasyonuna odaklı.
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {PILLARS.map((pillar) => {
+            const Icon = pillar.icon;
+            return (
+              <div
+                key={pillar.num}
+                className="flex flex-col justify-between p-7 rounded-2xl border border-slate-200/90 bg-white hover:border-emerald-300 transition-colors space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-mono font-semibold text-slate-400">
+                      {pillar.num}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-950">{pillar.title}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{pillar.description}</p>
+                </div>
+
+                <ul className="space-y-2 pt-4 border-t border-slate-100 text-xs font-medium text-slate-700">
+                  {pillar.bullets.map((b) => (
+                    <li key={b} className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Who Is It For (Editorial Photo Split + 6 Sectors) */}
+      <section id="kimler-icin" className="py-16 sm:py-24 bg-[#FAFAF9] border-y border-slate-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-14">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            <div className="lg:col-span-6 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+                Kimlere Hitap Eder?
+              </p>
+              <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight leading-tight">
+                Randevu ile çalışan tüm klinikler ve hizmet işletmeleri için.
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Resepsiyonunuz, danışmanlarınız ve uzmanlarınız artık birbirine &quot;Bu hastaya
-                dönüş yapıldı mı?&quot; veya &quot;Saat 15:00 boş mu?&quot; diye sormak zorunda
-                kalmaz. Tek WhatsApp numarası ve ortak Google takvimiyle herkes aynı anda senkron
-                çalışır.
+                Resepsiyonunuz WhatsApp&apos;tan gelen soruları yanıtlarken, doktor ve uzmanlarınız
+                kendi Google Takvimlerinden günün akışını takip eder. Herkes yalnızca kendi yetkili
+                olduğu ekranları görür.
               </p>
-              <div className="flex flex-wrap gap-3 pt-1">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800">
-                  <Users className="w-4 h-4 text-emerald-600" />
-                  Resepsiyon + Uzman Koordinasyonu
+              <div className="flex flex-wrap gap-3 pt-2 text-xs font-semibold text-slate-700">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200">
+                  <Users className="w-3.5 h-3.5 text-emerald-700" />
+                  Yönetici & Uzman Rol Ayrımı
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-xs font-semibold text-emerald-800">
-                  <Clock className="w-4 h-4 text-emerald-600" />
-                  Gelmeme Oranında Ciddi Düşüş
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                  KVKK Unutulma Hakkı & Audit Log
                 </span>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6">
+              <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-lg bg-white">
+                <img
+                  src="/images/team-clinic.jpg"
+                  alt="TAKVIMO kullanan modern klinik resepsiyon ve uzman ekibi"
+                  className="w-full h-auto object-cover"
+                />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {SECTORS.map((sector) => {
               const Icon = sector.icon;
               return (
                 <div
                   key={sector.title}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6 space-y-3 hover:border-emerald-300 hover:bg-white hover:-translate-y-0.5 transition-all"
+                  className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-2.5"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
-                      {sector.tag}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-base">{sector.title}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{sector.description}</p>
+                  <Icon className="w-5 h-5 text-emerald-700" />
+                  <h3 className="font-bold text-slate-950 text-sm sm:text-base">{sector.title}</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {sector.description}
+                  </p>
                 </div>
               );
             })}
@@ -371,118 +381,139 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Section: Fiyatlandırma & KVKK CTA */}
-      <section id="fiyatlandirma" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 w-full space-y-14">
+      {/* Pricing Section */}
+      <section id="fiyatlandirma" className="py-16 sm:py-24 max-w-5xl mx-auto px-4 sm:px-6 w-full space-y-12">
         <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-            Fiyatlandırma
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900">
-            Ekip Büyüdükçe Artmayan Sabit Fiyat
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+            Şeffaf Fiyatlandırma
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight">
+            Ekibiniz büyüdükçe faturanız büyümez.
           </h2>
           <p className="text-sm sm:text-base text-slate-600">
-            Diğer platformların aksine kişi başı lisans ücreti yok. İşletmenizdeki herkes tek
-            pakete dahildir.
+            Kullanıcı başına lisans ücreti yok. İşletmenizdeki tüm çalışanlar tek sabit pakete
+            dahildir.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <div className="rounded-2xl border border-slate-200 bg-white p-7 flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
-              <h3 className="text-lg font-bold text-slate-900">Başlangıç</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 flex flex-col justify-between space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-950">Başlangıç</h3>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-extrabold text-slate-900">₺1.490</span>
-                <span className="text-xs text-slate-500">/ ay • işletme başı</span>
+                <span className="text-4xl font-bold text-slate-950 tracking-tight">₺1.490</span>
+                <span className="text-xs text-slate-500">/ ay · işletme başı</span>
               </div>
-              <ul className="space-y-2.5 pt-3 text-sm text-slate-600">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-sm text-slate-600">
+                Küçük klinikler ve butik işletmeler için ortak WhatsApp ve takvim düzeni.
+              </p>
+              <ul className="space-y-2.5 pt-2 text-sm text-slate-700">
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                   Sınırsız ekip üyesi (0₺ / kişi)
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                   1 resmî WhatsApp Business numarası
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  Google Calendar senkronizasyonu
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Google Calendar çakışma korumalı sync
                 </li>
               </ul>
             </div>
             <Link
               href="/login"
-              className="w-full py-3 rounded-xl border border-slate-300 bg-white text-center text-sm font-semibold text-slate-800 hover:border-emerald-500 hover:text-emerald-700 transition-colors"
+              className="w-full py-3 rounded-xl border border-slate-300 hover:border-slate-400 text-center text-sm font-semibold text-slate-900 transition-colors"
             >
               Demo ile Başla
             </Link>
           </div>
 
-          <div className="rounded-2xl border-2 border-emerald-600 bg-white p-7 flex flex-col justify-between space-y-6 shadow-md shadow-emerald-900/5">
-            <div className="space-y-3">
+          <div className="rounded-2xl border-2 border-emerald-700 bg-white p-8 flex flex-col justify-between space-y-8 shadow-sm">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900">Pro</h3>
-                <span className="px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                  En Popüler
+                <h3 className="text-lg font-bold text-slate-950">Pro</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                  Önerilen
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-extrabold text-slate-900">₺2.490</span>
-                <span className="text-xs text-slate-500">/ ay • işletme başı</span>
+                <span className="text-4xl font-bold text-slate-950 tracking-tight">₺2.490</span>
+                <span className="text-xs text-slate-500">/ ay · işletme başı</span>
               </div>
-              <ul className="space-y-2.5 pt-3 text-sm text-slate-600">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  Sınırsız ekip üyesi + rol & yetki yönetimi
+              <p className="text-sm text-slate-600">
+                Yoğun randevu trafiği olan klinikler için tam otomasyon ve KVKK araçları.
+              </p>
+              <ul className="space-y-2.5 pt-2 text-sm text-slate-700">
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Sınırsız ekip üyesi + rol ve yetki yönetimi
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  Otomatik onay, hatırlatma & yeniden deneme
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  Otomatik onay, 24s hatırlatma ve yeniden deneme
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  KVKK unutulma hakkı & denetim kayıtları
+                <li className="flex items-center gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  KVKK unutulma hakkı ve denetim kayıtları
                 </li>
               </ul>
             </div>
             <Link
               href="/login"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-center text-sm font-semibold text-white hover:opacity-95 transition-opacity"
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-center text-sm font-semibold text-white transition-colors"
             >
               Ücretsiz Denemeyi Başlat
             </Link>
           </div>
         </div>
+      </section>
 
-        <div className="bg-gradient-to-r from-emerald-700 to-teal-700 rounded-3xl p-8 md:p-10 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-100">
-              <Lock className="w-4 h-4" />
-              <span>KVKK Uyumlu • Multi-Tenant İzolasyon • AES-256-GCM Şifreleme</span>
-            </div>
-            <h3 className="text-2xl font-bold">
-              Ekibinizi Tek Gelen Kutusu ve Tek Takvimde Buluşturun
-            </h3>
-            <p className="text-sm text-emerald-100">
-              Demo hesabıyla hemen giriş yapıp WhatsApp gelen kutusunu, takvim çakışma kontrolünü
-              ve otomatik bildirimleri test edebilirsiniz.
+      {/* FAQ Section */}
+      <section id="sss" className="py-16 sm:py-20 bg-[#FAFAF9] border-t border-slate-200/80">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
+              Sıkça Sorulan Sorular
             </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight">
+              Karar vermeden önce bilmeniz gerekenler
+            </h2>
           </div>
-          <Link
-            href={session ? "/dashboard" : "/login"}
-            className="shrink-0 inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white text-emerald-800 text-sm font-bold shadow-sm hover:bg-emerald-50 transition-colors"
-          >
-            <span>{session ? "Panele Git" : "Hemen Giriş Yap"}</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
+          <LandingFaqAccordion />
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-auto bg-white border-t border-slate-200 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      {/* Final Calm High-Trust CTA */}
+      <section className="py-16 sm:py-20 bg-white border-t border-slate-200/80">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6">
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight">
+            Tek gelen kutusu. Tek takvim. Tek ekip.
+          </h2>
+          <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto">
+            Demo hesabıyla şimdi giriş yapıp WhatsApp Gelen Kutusu&apos;nu, Google Calendar canlı
+            müsaitlik seçimini ve otomatik bildirimleri dakikalar içinde deneyimleyin.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href={session ? "/dashboard" : "/login"}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors"
+            >
+              <span>{session ? "Panele Git" : "Hemen Ücretsiz Başla"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Minimal Footer */}
+      <footer className="bg-white border-t border-slate-200 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-emerald-700">TAKVIMO</span>
-            <span>— Tek gelen kutusu. Tek takvim. Tek ekip.</span>
+            <span className="font-bold text-slate-900">TAKVIMO</span>
+            <span>· WhatsApp Business & Google Calendar Koordinasyon Platformu</span>
           </div>
           <p>© {new Date().getFullYear()} TAKVIMO. Tüm hakları saklıdır.</p>
         </div>
