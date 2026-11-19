@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin, ApiError, handleApiError } from "@/lib/tenant-guard";
-
-const PLAN_PRICES_TRY: Record<string, number> = {
-  STARTER: 1490,
-  PRO: 2490,
-};
+import { PLAN_PRICES_TRY, type PlanTierId } from "@/lib/plans";
 
 export async function GET() {
   try {
@@ -53,7 +49,7 @@ export async function GET() {
       return days <= 7;
     });
     const estimatedMrrTry = activeTenants.reduce(
-      (sum, t) => sum + (PLAN_PRICES_TRY[t.planTier] ?? 1490),
+      (sum, t) => sum + (PLAN_PRICES_TRY[t.planTier as PlanTierId] ?? 0),
       0
     );
 
@@ -79,7 +75,7 @@ export async function GET() {
 
 const patchTenantSchema = z.object({
   tenantId: z.string().min(1),
-  planTier: z.enum(["STARTER", "PRO"]).optional(),
+  planTier: z.enum(["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]).optional(),
   isSuspended: z.boolean().optional(),
   subscriptionStartsAt: z.string().nullable().optional(),
   subscriptionEndsAt: z.string().nullable().optional(),

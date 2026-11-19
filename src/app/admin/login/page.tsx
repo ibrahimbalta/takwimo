@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
       }
       if (!data.user?.isSuperAdmin) {
         await fetch("/api/auth/logout", { method: "POST" });
-        setError("Bu giriş ekranı yalnızca TAKVİMO Platform Yöneticisi içindir.");
+        setError("Bu giriş ekranı yalnızca TAKWİMO Platform Yöneticisi içindir.");
         return;
       }
       router.push("/admin");
@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
           <div className="space-y-3">
             <TakvimoLogo variant="dark" subtitle="Platform Yöneticisi Girişi" />
             <p className="text-xs text-slate-400">
-              Yalnızca yetkili TAKVİMO SaaS yöneticileri bu konsola erişebilir.
+              Yalnızca yetkili TAKWİMO SaaS yöneticileri bu konsola erişebilir.
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@takvimo.app"
+                placeholder="admin@takwimo.app"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
               />
             </div>

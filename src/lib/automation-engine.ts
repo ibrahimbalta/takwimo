@@ -99,6 +99,7 @@ export async function executeNotificationJob(jobId: string): Promise<void> {
 
   if (!job || job.status === "SENT" || job.status === "CANCELLED") return;
 
+  const dateStr = `${formatDateTR(job.appointment.startAt)} ${formatTimeTR(job.appointment.startAt)}`;
   const renderedBody = renderTemplateBody(
     job.rule.template.bodyPreview,
     job.appointment.contact.name,
@@ -112,6 +113,12 @@ export async function executeNotificationJob(jobId: string): Promise<void> {
     type: "TEMPLATE",
     body: renderedBody,
     templateName: job.rule.template.metaTemplateName,
+    templateLanguage: job.rule.template.language,
+    templateVariables: [
+      job.appointment.contact.name,
+      dateStr,
+      job.appointment.title,
+    ],
   });
 
   if (result.ok) {

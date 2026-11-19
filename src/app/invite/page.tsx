@@ -79,7 +79,7 @@ function InviteForm() {
             <p className="text-xs text-slate-500 mt-0.5">
               {inviteInfo
                 ? `${inviteInfo.tenantName} ekibine katılmak için adınızı ve şifrenizi belirleyin.`
-                : "TAKVİMO Ekip Daveti"}
+                : "TAKWİMO Ekip Daveti"}
             </p>
           </div>
         </div>

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TAKVIMO — Tek Gelen Kutusu. Tek Takvim. Tek Ekip.",
+  title: "TAKWİMO — Tek Gelen Kutusu. Tek Takvim. Tek Ekip.",
   description: "Randevu odaklı KOBİ'ler için WhatsApp Business ve Google Calendar entegrasyon platformu.",
 };
 

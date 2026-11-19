@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptSecret } from "@/lib/crypto";
 import { recordAuditLog } from "@/lib/audit";
+import { registerGoogleCalendarWatch } from "@/lib/integrations/google-calendar";
 
 /**
  * Google OAuth 2.0 Callback
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
   });
   const profile = (await userRes.json()) as { email?: string };
 
-  await prisma.googleCalendarConnection.upsert({
+  const conn = await prisma.googleCalendarConnection.upsert({
     where: { membershipId },
     update: {
       googleEmail: profile.email ?? "google-user",
@@ -73,6 +74,9 @@ export async function GET(req: NextRequest) {
       status: "CONNECTED",
     },
   });
+
+  // Register Google Calendar two-way push notification watch channel (HTTPS production)
+  await registerGoogleCalendarWatch(conn.id);
 
   await recordAuditLog({
     tenantId,

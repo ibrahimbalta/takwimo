@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     if (activeMembership.tenant.isSuspended && !user.isSuperAdmin) {
       return NextResponse.json(
-        { error: "İşletme hesabınız askıya alınmıştır. Lütfen TAKVIMO yöneticisi ile iletişime geçin." },
+        { error: "İşletme hesabınız askıya alınmıştır. Lütfen TAKWİMO yöneticisi ile iletişime geçin." },
         { status: 403 }
       );
     }

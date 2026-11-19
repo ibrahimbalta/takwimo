@@ -171,7 +171,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs">
-            <span className="font-semibold text-slate-800">{session?.tenantName ?? "TAKVİMO"}</span>
+            <span className="font-semibold text-slate-800">{session?.tenantName ?? "TAKWİMO"}</span>
             <span className="text-slate-300">·</span>
             <span className="text-slate-500">Tek gelen kutusu. Tek takvim. Tek ekip.</span>
           </div>
@@ -209,7 +209,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-950">TAKVİMO 3 Adımda Nasıl Kullanılır?</h2>
+                <h2 className="text-lg font-bold text-slate-950">TAKWİMO 3 Adımda Nasıl Kullanılır?</h2>
                 <button
                   type="button"
                   onClick={() => setHelpOpen(false)}

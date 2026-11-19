@@ -98,6 +98,20 @@ export default function InboxPage() {
     if (selectedId) loadMessages(selectedId);
   }, [selectedId, loadMessages]);
 
+  // Live background polling every 5 seconds (paused when browser tab is hidden)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      loadConversations();
+      if (selectedId) {
+        loadMessages(selectedId);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loadConversations, loadMessages, selectedId]);
+
   const selectedConv = conversations.find((c) => c.id === selectedId) ?? null;
 
   async function handleSendMessage(type: "TEXT" | "TEMPLATE", overrideBody?: string, templateName?: string) {

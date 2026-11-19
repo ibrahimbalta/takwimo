@@ -17,7 +17,7 @@ model Tenant {
   timezone          String   @default("Europe/Istanbul")
   workStartHour     String   @default("09:00")
   workEndHour       String   @default("18:00")
-  planTier             String    @default("STARTER") // STARTER | PRO
+  planTier             String    @default("STARTER") // STARTER | PRO | BUSINESS | ENTERPRISE
   subscriptionStartsAt DateTime?
   subscriptionEndsAt   DateTime?
   dataRetentionDays    Int       @default(365)
@@ -37,6 +37,7 @@ model Tenant {
   automationRules           AutomationRule[]
   notificationJobs          NotificationJob[]
   auditLogs                 AuditLog[]
+  paymentTransactions       PaymentTransaction[]
 }
 
 model User {
@@ -48,8 +49,40 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships Membership[]
-  auditLogs   AuditLog[]
+  memberships         Membership[]
+  auditLogs           AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PaymentTransaction {
+  id           String   @id @default(cuid())
+  tenantId     String
+  planTier     String   // STARTER | PRO | BUSINESS | ENTERPRISE
+  amountTry    Int
+  currency     String   @default("TRY")
+  provider     String   @default("DEMO") // IYZICO | MANUAL | DEMO
+  providerRef  String?
+  status       String   @default("PAID") // PENDING | PAID | FAILED | REFUNDED
+  periodStart  DateTime
+  periodEnd    DateTime?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
 }
 
 model Membership {

@@ -28,6 +28,11 @@ interface MetaWebhookPayload {
           from?: string;
           type?: string;
           text?: { body?: string };
+          image?: { id?: string; caption?: string; mime_type?: string };
+          document?: { id?: string; filename?: string; caption?: string; mime_type?: string };
+          audio?: { id?: string; mime_type?: string };
+          video?: { id?: string; caption?: string; mime_type?: string };
+          location?: { latitude?: number; longitude?: number; name?: string };
         }>;
         statuses?: Array<{
           id?: string;
@@ -136,6 +141,35 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        let bodyText = msg.text?.body ?? "";
+        if (!bodyText) {
+          switch (msg.type) {
+            case "image":
+              bodyText = msg.image?.caption
+                ? `📷 [Görsel] ${msg.image.caption}`
+                : `📷 [Görsel mesajı · ID: ${msg.image?.id ?? "-"}]`;
+              break;
+            case "document":
+              bodyText = `📄 [Belge: ${msg.document?.filename ?? "dosya"}]${
+                msg.document?.caption ? ` ${msg.document.caption}` : ""
+              }`;
+              break;
+            case "audio":
+              bodyText = `🎙️ [Sesli mesaj · ID: ${msg.audio?.id ?? "-"}]`;
+              break;
+            case "video":
+              bodyText = msg.video?.caption
+                ? `🎬 [Video] ${msg.video.caption}`
+                : `🎬 [Video mesajı · ID: ${msg.video?.id ?? "-"}]`;
+              break;
+            case "location":
+              bodyText = `📍 [Konum: ${msg.location?.name ?? `${msg.location?.latitude}, ${msg.location?.longitude}`}]`;
+              break;
+            default:
+              bodyText = `[${msg.type ?? "medya"} mesajı]`;
+          }
+        }
+
         await prisma.message.create({
           data: {
             tenantId: waAccount.tenantId,
@@ -143,7 +177,7 @@ export async function POST(req: NextRequest) {
             waMessageId: msg.id,
             direction: "INBOUND",
             type: msg.type === "text" ? "TEXT" : "SYSTEM",
-            body: msg.text?.body ?? `[${msg.type ?? "medya"} mesajı]`,
+            body: bodyText,
             status: "READ",
             isDemo: false,
           },

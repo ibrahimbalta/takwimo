@@ -87,7 +87,7 @@ export function TimeSlotPicker({
                   title={
                     slot.source === "GOOGLE"
                       ? "Google Takviminde dolu"
-                      : "TAKVIMO'da randevusu var"
+                      : "TAKWİMO'da randevusu var"
                   }
                   className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-rose-50 text-rose-500 border border-rose-200 cursor-not-allowed line-through opacity-75"
                 >

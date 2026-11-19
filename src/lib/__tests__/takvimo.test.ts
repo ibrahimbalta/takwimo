@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import crypto from "crypto";
-import { encryptSecret, decryptSecret, verifyMetaSignature } from "@/lib/crypto";
+import { encryptSecret, decryptSecret, verifyMetaSignature, generateSecureToken, hashToken } from "@/lib/crypto";
 import { isWithin24Hours } from "@/lib/utils";
 import { checkMemberCalendarConflict } from "@/lib/integrations/google-calendar";
+import { buildWhatsappCloudPayload } from "@/lib/integrations/whatsapp";
+import { PLANS, PLAN_PRICES_TRY, getPlanById } from "@/lib/plans";
+import { checkRateLimit, checkRateLimitAsync } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 
 describe("TAKVIMO Security & Core Business Rules", () => {
@@ -31,6 +34,57 @@ describe("TAKVIMO Security & Core Business Rules", () => {
     expect(isWithin24Hours(twoHoursAgo)).toBe(true);
     expect(isWithin24Hours(twentySixHoursAgo)).toBe(false);
     expect(isWithin24Hours(null)).toBe(false);
+  });
+
+  it("defines 4-tier TRY pricing plans (0 / 500 / 1000 / 2000 TL)", () => {
+    expect(PLANS).toHaveLength(4);
+    expect(PLAN_PRICES_TRY).toEqual({
+      STARTER: 0,
+      PRO: 500,
+      BUSINESS: 1000,
+      ENTERPRISE: 2000,
+    });
+    expect(getPlanById("STARTER").priceLabel).toBe("₺0");
+    expect(getPlanById("PRO").priceLabel).toBe("₺500");
+    expect(getPlanById("BUSINESS").priceLabel).toBe("₺1.000");
+    expect(getPlanById("ENTERPRISE").priceLabel).toBe("₺2.000");
+    expect(getPlanById("UNKNOWN").id).toBe("STARTER");
+  });
+
+  it("builds Meta WhatsApp Cloud API template payload with body components", () => {
+    const payload = buildWhatsappCloudPayload({
+      toPhoneE164: "+90 532 111 22 33",
+      type: "TEMPLATE",
+      body: "Merhaba Ayşe, yarın saat 14:00 randevunuz onaylandı.",
+      templateName: "randevu_onay_v1",
+      templateLanguage: "tr",
+      templateVariables: ["Ayşe Yılmaz", "20.11.2026 14:00", "Diş Temizliği"],
+    });
+
+    expect(payload.to).toBe("905321112233");
+    expect(payload.type).toBe("template");
+    expect(payload.template?.name).toBe("randevu_onay_v1");
+    expect(payload.template?.components).toEqual([
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: "Ayşe Yılmaz" },
+          { type: "text", text: "20.11.2026 14:00" },
+          { type: "text", text: "Diş Temizliği" },
+        ],
+      },
+    ]);
+  });
+
+  it("hashes password reset / invite tokens deterministically and enforces rate limits", async () => {
+    const { raw, hash } = generateSecureToken();
+    expect(hashToken(raw)).toBe(hash);
+    expect(hash).not.toBe(raw);
+
+    const key = `test-rl-${Date.now()}`;
+    expect(checkRateLimit(key, 2, 10_000).allowed).toBe(true);
+    expect((await checkRateLimitAsync(key, 2, 10_000)).allowed).toBe(true);
+    expect(checkRateLimit(key, 2, 10_000).allowed).toBe(false);
   });
 
   it("isolates tenants and detects overlapping appointment conflicts", async () => {

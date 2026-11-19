@@ -8,6 +8,8 @@ export interface SendWhatsappParams {
   type: "TEXT" | "TEMPLATE";
   body: string;
   templateName?: string;
+  templateLanguage?: string;
+  templateVariables?: string[];
 }
 
 export interface SendWhatsappResult {
@@ -17,6 +19,55 @@ export interface SendWhatsappResult {
   status: "SENT" | "FAILED";
   errorCode?: string;
   errorMessage?: string;
+}
+
+/**
+ * Builds a Meta WhatsApp Business Cloud API message payload, including template body components
+ * when templateVariables are provided.
+ */
+export function buildWhatsappCloudPayload(params: {
+  toPhoneE164: string;
+  type: "TEXT" | "TEMPLATE";
+  body: string;
+  templateName?: string;
+  templateLanguage?: string;
+  templateVariables?: string[];
+}) {
+  const toDigits = params.toPhoneE164.replace(/\D/g, "");
+
+  if (params.type === "TEMPLATE" && params.templateName) {
+    const cleanVars = (params.templateVariables ?? []).map((v) => String(v ?? "").trim());
+    return {
+      messaging_product: "whatsapp",
+      to: toDigits,
+      type: "template",
+      template: {
+        name: params.templateName,
+        language: { code: params.templateLanguage ?? "tr" },
+        ...(cleanVars.length > 0
+          ? {
+              components: [
+                {
+                  type: "body",
+                  parameters: cleanVars.map((text) => ({
+                    type: "text",
+                    text: text || "-",
+                  })),
+                },
+              ],
+            }
+          : {}),
+      },
+    };
+  }
+
+  return {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: toDigits,
+    type: "text",
+    text: { preview_url: false, body: params.body },
+  };
 }
 
 /**
@@ -50,26 +101,7 @@ export async function sendWhatsappMessage(params: SendWhatsappParams): Promise<S
 
   try {
     const accessToken = decryptSecret(account.encryptedAccessToken);
-    const toDigits = params.toPhoneE164.replace(/\D/g, "");
-
-    const payload =
-      params.type === "TEMPLATE" && params.templateName
-        ? {
-            messaging_product: "whatsapp",
-            to: toDigits,
-            type: "template",
-            template: {
-              name: params.templateName,
-              language: { code: "tr" },
-            },
-          }
-        : {
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: toDigits,
-            type: "text",
-            text: { preview_url: false, body: params.body },
-          };
+    const payload = buildWhatsappCloudPayload(params);
 
     const res = await fetch(`https://graph.facebook.com/v21.0/${account.phoneNumberId}/messages`, {
       method: "POST",

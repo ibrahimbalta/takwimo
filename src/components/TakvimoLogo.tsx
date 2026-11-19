@@ -56,7 +56,7 @@ export function TakvimoLogo({
             variant === "dark" ? "text-white" : "text-slate-950"
           }`}
         >
-          TAKV<span className={variant === "dark" ? "text-emerald-400" : "text-emerald-700"}>İ</span>MO
+          TAKW<span className={variant === "dark" ? "text-emerald-400" : "text-emerald-700"}>İ</span>MO
         </span>
         {subtitle && (
           <span

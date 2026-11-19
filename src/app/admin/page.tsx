@@ -176,7 +176,7 @@ export default function StandaloneAdminCrmPage() {
   if (loading || !data) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-300 flex items-center justify-center text-sm">
-        TAKVİMO SaaS CRM Konsolu yükleniyor...
+        TAKWİMO SaaS CRM Konsolu yükleniyor...
       </div>
     );
   }
@@ -497,8 +497,10 @@ export default function StandaloneAdminCrmPage() {
                               onChange={(e) => updateTenant(t.id, { planTier: e.target.value })}
                               className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-semibold bg-white"
                             >
-                              <option value="STARTER">Başlangıç (₺1.490)</option>
-                              <option value="PRO">Pro (₺2.490)</option>
+                              <option value="STARTER">Başlangıç (₺0)</option>
+                              <option value="PRO">Pro (₺500)</option>
+                              <option value="BUSINESS">Business (₺1.000)</option>
+                              <option value="ENTERPRISE">Enterprise (₺2.000)</option>
                             </select>
                           </td>
                           <td className="py-4 px-4 text-xs">

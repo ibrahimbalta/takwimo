@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const session = await requireAuth();
+    const session = await requireAuth({ allowExpiredSubscription: true });
     const [tenant, wa] = await Promise.all([
       prisma.tenant.findUnique({ where: { id: session.tenantId } }),
       prisma.whatsappAccount.findFirst({ where: { tenantId: session.tenantId } }),

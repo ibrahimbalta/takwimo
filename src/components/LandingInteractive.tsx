@@ -236,7 +236,7 @@ export function InteractiveHeroWorkspace() {
 const FAQS = [
   {
     q: "Ekip üyesi ekledikçe ekstra ücret öder miyim?",
-    a: "Hayır. TAKVIMO kullanıcı başına ücret almaz. İşletme bazlı tek abonelik ile tüm doktorlarınızı, uzmanlarınızı ve resepsiyon ekibinizi ücretsiz davet edebilirsiniz.",
+    a: "Hayır. TAKWİMO kullanıcı başına ücret almaz. İşletme bazlı tek abonelik ile tüm doktorlarınızı, uzmanlarınızı ve resepsiyon ekibinizi ücretsiz davet edebilirsiniz.",
   },
   {
     q: "Kişisel WhatsApp numaramızla mı yoksa resmî API ile mi çalışır?",
@@ -247,7 +247,7 @@ const FAQS = [
     a: "Evet. Her ekip üyesi kendi Google hesabını tek tıkla bağlar; randevu verilirken yalnızca o çalışanın takvimindeki boş saatler yeşil, dolu saatler kırmızı olarak görünür.",
   },
   {
-    q: "TAKVIMO karmaşık bir CRM veya muhasebe programı mı?",
+    q: "TAKWİMO karmaşık bir CRM veya muhasebe programı mı?",
     a: "Hayır. Stok, fatura, muhasebe veya gereksiz satış modülleri içermez. Yalnızca WhatsApp iletişimi ve Google Calendar randevu koordinasyonunu kusursuz yapmak için tasarlanmıştır.",
   },
 ];

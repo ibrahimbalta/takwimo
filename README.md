@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TAKWİMO — WhatsApp Business & Google Calendar Koordinasyon Platformu
 
-## Getting Started
+TAKWİMO, randevu ile çalışan işletmeler (klinikler, estetik merkezleri, veterinerler, psikologlar, kuaförler ve KOBİ'ler) için geliştirilmiş **çoklu işletmeli (Multi-Tenant) SaaS** platformudur.
 
-First, run the development server:
+**Tek gelen kutusu. Tek takvim. Tek ekip.**
+
+## Öne Çıkan Özellikler
+
+- **Ortak WhatsApp Business Gelen Kutusu:** Meta Cloud API + Embedded Signup, 24 saatlik müşteri penceresi kontrolü, şablon mesaj değişkenleri (`components`), medya algılama ve 5 saniyede bir canlı yenileme.
+- **İki Yönlü Google Calendar Senkronizasyonu:** Çakışma önleme (`freeBusy`), 30 dakikalık slot seçici, Google'a otomatik etkinlik yazma/güncelleme/iptal ve `/api/webhooks/google` push bildirim senkronizasyonu.
+- **Otomatik Hatırlatma & Cron Motoru:** Randevu onayı, 24 saat önce hatırlatma, iptal ve erteleme otomasyonları (`/api/cron/run` ile tüm işletmeler için otomatik tetikleme).
+- **3 Katmanlı Rol Yönetimi & Bağımsız Admin CRM:** Süper Admin (`/admin`), İşletme Sahibi/Yöneticisi (`OWNER`/`ADMIN`) ve Uzman/Personel (`STAFF`) ayrımı.
+- **E-posta & Şifre Sıfırlama:** Resend destekli ekip davet e-postaları ve `/forgot-password` → `/reset-password` akışı.
+- **KVKK Uyumluluğu:** Tek tıkla unutulma hakkı (anonimleştirme), denetim günlüğü (`AuditLog`), otomatik veri saklama temizliği ve yasal sayfalar (`/privacy`, `/terms`, `/kvkk`).
+
+## Paketler & Fiyatlandırma
+
+| Paket | Aylık Ücret | Müşteri | Aylık Randevu | Ekip Koltuğu |
+| :--- | :--- | :--- | :--- | :--- |
+| **Başlangıç** | **₺0** (Sonsuza dek ücretsiz) | 50 | 50 | 2 |
+| **Pro** | **₺500 / ay** | 500 | 1.000 | 5 |
+| **Business** | **₺1.000 / ay** | 5.000 | 10.000 | 20 |
+| **Enterprise** | **₺2.000 / ay** | 50.000 | 100.000 | 50 |
+
+## Kurulum & Geliştirme
 
 ```bash
+# 1. Bağımlılıkları kurun
+npm install
+
+# 2. Ortam değişkenlerini ayarlayın
+cp .env.example .env
+
+# 3. Veritabanı şemasını uygulayın ve örnek verileri yükleyin
+npm run db:push
+npm run db:seed
+
+# 4. Geliştirme sunucusunu başlatın
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Test, Lint ve Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Üretim Cron Görevi
 
-## Learn More
+Hatırlatma mesajları, KVKK otomatik veri saklama temizliği ve Google Calendar watch yenilemesi için her 5 dakikada bir aşağıdaki endpoint'i tetikleyin:
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+curl -X POST https://app.takwimo.com/api/cron/run \
+  -H "Authorization: Bearer $CRON_SECRET"
+```

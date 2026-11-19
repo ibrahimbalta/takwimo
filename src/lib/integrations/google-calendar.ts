@@ -297,3 +297,200 @@ export async function syncAppointmentToGoogle(
 
   return { synced: false, mode: "LIVE" };
 }
+
+/**
+ * Registers a Google Calendar push notification watch channel (for two-way sync).
+ * Requires an HTTPS NEXT_PUBLIC_APP_URL reachable by Google.
+ */
+export async function registerGoogleCalendarWatch(connectionId: string): Promise<{
+  ok: boolean;
+  channelId?: string;
+  expiration?: Date;
+}> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  if (!appUrl.startsWith("https://")) {
+    return { ok: false };
+  }
+
+  const conn = await prisma.googleCalendarConnection.findUnique({ where: { id: connectionId } });
+  if (!conn || conn.mode !== "LIVE" || conn.status !== "CONNECTED") {
+    return { ok: false };
+  }
+
+  const accessToken = await getValidGoogleAccessToken(conn.id);
+  if (!accessToken) return { ok: false };
+
+  const channelId = `takvimo_${conn.id}_${Date.now()}`;
+  const webhookUrl = `${appUrl.replace(/\/$/, "")}/api/webhooks/google`;
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(conn.calendarId)}/events/watch`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: channelId,
+          type: "web_hook",
+          address: webhookUrl,
+          token: conn.tenantId,
+        }),
+      }
+    );
+
+    if (!res.ok) return { ok: false };
+
+    const data = (await res.json()) as {
+      id?: string;
+      resourceId?: string;
+      expiration?: string;
+    };
+
+    const expiration = data.expiration ? new Date(Number(data.expiration)) : new Date(Date.now() + 6 * 86_400_000);
+    await prisma.googleCalendarConnection.update({
+      where: { id: conn.id },
+      data: {
+        watchChannelId: data.id ?? channelId,
+        watchResourceId: data.resourceId ?? null,
+        watchExpiration: expiration,
+      },
+    });
+
+    return { ok: true, channelId: data.id ?? channelId, expiration };
+  } catch (err) {
+    console.error("[GOOGLE_WATCH_REGISTER_ERROR]", err);
+    return { ok: false };
+  }
+}
+
+/**
+ * Pulls incremental changes from Google Calendar back into Takvimo appointments (two-way sync).
+ */
+export async function syncGoogleEventsToTakvimo(connectionId: string): Promise<{
+  updatedCount: number;
+  cancelledCount: number;
+}> {
+  const conn = await prisma.googleCalendarConnection.findUnique({ where: { id: connectionId } });
+  if (!conn || conn.mode !== "LIVE" || conn.status !== "CONNECTED") {
+    return { updatedCount: 0, cancelledCount: 0 };
+  }
+
+  const accessToken = await getValidGoogleAccessToken(conn.id);
+  if (!accessToken) return { updatedCount: 0, cancelledCount: 0 };
+
+  const url = new URL(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(conn.calendarId)}/events`
+  );
+  if (conn.syncToken) {
+    url.searchParams.set("syncToken", conn.syncToken);
+  } else {
+    url.searchParams.set("updatedMin", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    url.searchParams.set("singleEvents", "true");
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (res.status === 410) {
+    // Sync token expired — reset and retry cleanly on next webhook
+    await prisma.googleCalendarConnection.update({
+      where: { id: conn.id },
+      data: { syncToken: null },
+    });
+    return { updatedCount: 0, cancelledCount: 0 };
+  }
+
+  if (!res.ok) return { updatedCount: 0, cancelledCount: 0 };
+
+  const data = (await res.json()) as {
+    nextSyncToken?: string;
+    items?: Array<{
+      id?: string;
+      status?: string;
+      summary?: string;
+      start?: { dateTime?: string };
+      end?: { dateTime?: string };
+    }>;
+  };
+
+  let updatedCount = 0;
+  let cancelledCount = 0;
+
+  for (const item of data.items ?? []) {
+    if (!item.id) continue;
+    const appt = await prisma.appointment.findFirst({
+      where: {
+        tenantId: conn.tenantId,
+        assignedMembershipId: conn.membershipId,
+        googleEventId: item.id,
+      },
+    });
+    if (!appt) continue;
+
+    if (item.status === "cancelled") {
+      if (appt.status !== "CANCELLED") {
+        await prisma.appointment.update({
+          where: { id: appt.id },
+          data: { status: "CANCELLED" },
+        });
+        cancelledCount++;
+      }
+      continue;
+    }
+
+    if (item.start?.dateTime && item.end?.dateTime) {
+      const nextStart = new Date(item.start.dateTime);
+      const nextEnd = new Date(item.end.dateTime);
+      if (
+        nextStart.getTime() !== appt.startAt.getTime() ||
+        nextEnd.getTime() !== appt.endAt.getTime()
+      ) {
+        await prisma.appointment.update({
+          where: { id: appt.id },
+          data: {
+            startAt: nextStart,
+            endAt: nextEnd,
+            status: "RESCHEDULED",
+          },
+        });
+        updatedCount++;
+      }
+    }
+  }
+
+  if (data.nextSyncToken) {
+    await prisma.googleCalendarConnection.update({
+      where: { id: conn.id },
+      data: { syncToken: data.nextSyncToken },
+    });
+  }
+
+  return { updatedCount, cancelledCount };
+}
+
+/**
+ * Renews Google Calendar watch channels expiring within 24 hours.
+ */
+export async function renewExpiringGoogleWatches(): Promise<number> {
+  const threshold = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiring = await prisma.googleCalendarConnection.findMany({
+    where: {
+      mode: "LIVE",
+      status: "CONNECTED",
+      OR: [{ watchExpiration: null }, { watchExpiration: { lte: threshold } }],
+    },
+    select: { id: true },
+    take: 25,
+  });
+
+  let renewed = 0;
+  for (const conn of expiring) {
+    const result = await registerGoogleCalendarWatch(conn.id);
+    if (result.ok) renewed++;
+  }
+  return renewed;
+}
