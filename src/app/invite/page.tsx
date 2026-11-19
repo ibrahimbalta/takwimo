@@ -3,7 +3,8 @@
 import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, UserPlus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { TakvimoLogo } from "@/components/TakvimoLogo";
 
 function InviteForm() {
   const searchParams = useSearchParams();
@@ -70,15 +71,15 @@ function InviteForm() {
         </Link>
       </div>
 
-      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-white">
-            <UserPlus className="w-5 h-5" />
-          </div>
+      <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-5">
+        <div className="space-y-3">
+          <TakvimoLogo variant="light" size="sm" />
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Ekip Davetini Kabul Et</h1>
-            <p className="text-xs text-slate-500">
-              {inviteInfo ? `${inviteInfo.tenantName} (${inviteInfo.role})` : "TAKVIMO"}
+            <h1 className="text-xl font-bold text-slate-950">Ekip Davetini Kabul Et</h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {inviteInfo
+                ? `${inviteInfo.tenantName} ekibine katılmak için adınızı ve şifrenizi belirleyin.`
+                : "TAKVİMO Ekip Daveti"}
             </p>
           </div>
         </div>

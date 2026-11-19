@@ -68,32 +68,52 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Millennium Dark-Obsidian + Bioluminescent Emerald Command Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 sm:p-8 text-white shadow-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-        <div className="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1.5">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Canlı Komuta Merkezi
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Hoş Geldiniz!</h1>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-            WhatsApp konuşmalarınız, ekip takviminiz ve randevu akışınız tek akıllı merkezde.
+      {/* Clean High-Trust Welcome Header + 3 Big Unmistakable Quick Actions */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xs space-y-5">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight">
+            Hoş Geldiniz! Bugün ne yapmak istersiniz?
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500">
+            Aşağıdaki 3 kolay butondan birine tıklayarak hemen işleminize başlayabilirsiniz.
           </p>
         </div>
-        <div className="relative z-10 flex items-center gap-2.5 flex-wrap">
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link
             href="/inbox"
-            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur border border-white/15 text-white text-xs sm:text-sm font-semibold transition-colors"
+            className="p-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200 transition-colors flex items-center justify-between gap-3"
           >
-            WhatsApp Kutusu
+            <div>
+              <p className="text-xs font-bold text-emerald-700">1. ADIM</p>
+              <p className="text-sm font-bold text-slate-950 mt-0.5">WhatsApp Mesajlarına Bak</p>
+              <p className="text-[11px] text-slate-600 mt-0.5">Müşterilere hemen cevap yazın</p>
+            </div>
+            <MessageSquare className="w-6 h-6 text-emerald-700 shrink-0" />
           </Link>
+
           <Link
             href="/calendar"
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-500/25 hover:opacity-95 transition-opacity"
+            className="p-4 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white transition-colors flex items-center justify-between gap-3 shadow-xs"
           >
-            + Takvim & Randevu
+            <div>
+              <p className="text-xs font-bold text-emerald-200">2. ADIM</p>
+              <p className="text-sm font-bold text-white mt-0.5">+ Yeni Randevu Oluştur</p>
+              <p className="text-[11px] text-emerald-100 mt-0.5">Yeşil boş saati seçip kaydedin</p>
+            </div>
+            <CalendarCheck2 className="w-6 h-6 text-emerald-200 shrink-0" />
+          </Link>
+
+          <Link
+            href="/integrations"
+            className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors flex items-center justify-between gap-3"
+          >
+            <div>
+              <p className="text-xs font-bold text-slate-500">3. ADIM</p>
+              <p className="text-sm font-bold text-slate-950 mt-0.5">Takvim & WhatsApp Bağla</p>
+              <p className="text-[11px] text-slate-600 mt-0.5">Google hesabınızı eşitleyin</p>
+            </div>
+            <Plug className="w-6 h-6 text-slate-600 shrink-0" />
           </Link>
         </div>
       </div>

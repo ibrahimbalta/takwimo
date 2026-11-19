@@ -18,6 +18,7 @@ import {
   X,
   AlertTriangle,
   ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
@@ -37,14 +38,14 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, glow: "from-emerald-400 to-teal-400", roles: ["OWNER", "ADMIN", "STAFF"] },
-  { href: "/inbox", label: "WhatsApp Kutusu", icon: MessageSquare, glow: "from-green-400 to-emerald-500", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/dashboard", label: "Özet Ekran", icon: LayoutDashboard, glow: "from-emerald-400 to-teal-400", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/inbox", label: "WhatsApp Mesajları", icon: MessageSquare, glow: "from-green-400 to-emerald-500", roles: ["OWNER", "ADMIN", "STAFF"] },
   { href: "/calendar", label: "Takvim", icon: Calendar, glow: "from-violet-400 to-indigo-400", roles: ["OWNER", "ADMIN", "STAFF"] },
   { href: "/appointments", label: "Randevular", icon: CalendarCheck2, glow: "from-sky-400 to-blue-500", roles: ["OWNER", "ADMIN", "STAFF"] },
-  { href: "/team", label: "Ekip", icon: Users, glow: "from-indigo-400 to-purple-400", roles: ["OWNER", "ADMIN"] },
-  { href: "/automations", label: "Otomasyonlar", icon: Zap, glow: "from-amber-400 to-orange-400", roles: ["OWNER", "ADMIN"] },
-  { href: "/integrations", label: "Entegrasyonlar", icon: Plug, glow: "from-teal-400 to-cyan-400", roles: ["OWNER", "ADMIN", "STAFF"] },
-  { href: "/settings", label: "Ayarlar", icon: Settings, glow: "from-slate-300 to-slate-400", roles: ["OWNER", "ADMIN"] },
+  { href: "/team", label: "Ekip & Çalışanlar", icon: Users, glow: "from-indigo-400 to-purple-400", roles: ["OWNER", "ADMIN"] },
+  { href: "/automations", label: "Otomatik Mesajlar", icon: Zap, glow: "from-amber-400 to-orange-400", roles: ["OWNER", "ADMIN"] },
+  { href: "/integrations", label: "Bağlantılar", icon: Plug, glow: "from-teal-400 to-cyan-400", roles: ["OWNER", "ADMIN", "STAFF"] },
+  { href: "/settings", label: "Ayarlar & KVKK", icon: Settings, glow: "from-slate-300 to-slate-400", roles: ["OWNER", "ADMIN"] },
   { href: "/billing", label: "Abonelik", icon: CreditCard, glow: "from-rose-400 to-pink-400", roles: ["OWNER", "ADMIN"] },
   { href: "/super-admin", label: "SaaS Yönetimi", icon: ShieldCheck, glow: "from-emerald-300 to-cyan-300", superAdminOnly: true, roles: ["OWNER", "ADMIN", "STAFF"] },
 ];
@@ -62,6 +63,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"DEMO" | "LIVE">("DEMO");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -163,41 +165,92 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 md:pl-[284px] flex flex-col min-h-screen pb-24 md:pb-6 overflow-x-hidden">
         {/* Floating Glass Topbar */}
-        <header className="mx-3 mt-3 md:mx-6 md:mt-3 h-14 bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-4 md:px-6 flex items-center justify-between sticky top-3 z-20 shadow-xs">
-          <div className="flex items-center gap-2.5 md:hidden">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs">
-              T
-            </div>
-            <span className="font-bold text-slate-900 text-sm truncate max-w-[160px]">
-              {session?.tenantName ?? "TAKVIMO"}
-            </span>
+        <header className="mx-3 mt-3 md:mx-6 md:mt-3 h-14 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-4 md:px-6 flex items-center justify-between sticky top-3 z-20 shadow-xs">
+          <div className="md:hidden">
+            <TakvimoLogo variant="light" size="sm" />
           </div>
 
-          <div className="hidden md:flex items-center gap-2.5 text-xs">
-            <span className="px-2 py-0.5 rounded-md bg-slate-900 text-emerald-400 font-mono text-[10px] font-bold tracking-wider">
-              OS v2.0
-            </span>
-            <span className="font-semibold text-slate-700">Tek gelen kutusu.</span>
-            <span className="text-slate-400">Tek takvim. Tek ekip.</span>
+          <div className="hidden md:flex items-center gap-2 text-xs">
+            <span className="font-semibold text-slate-800">{session?.tenantName ?? "TAKVİMO"}</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-500">Tek gelen kutusu. Tek takvim. Tek ekip.</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Nasıl Kullanılır?</span>
+              <span className="sm:hidden">Yardım</span>
+            </button>
+
             {integrationMode === "DEMO" ? (
               <Link
                 href="/integrations"
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>DEMO MODU</span>
+                <span>DEMO</span>
               </Link>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                CANLI API
+                CANLI
               </span>
             )}
           </div>
         </header>
+
+        {/* Simple 3-Step Quick Help Modal */}
+        {helpOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-950">TAKVİMO 3 Adımda Nasıl Kullanılır?</h2>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3 text-sm text-slate-700">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+                  <p className="font-bold text-emerald-900">1. WhatsApp Mesajlarına Bakın</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Sol menüden <strong>WhatsApp Mesajları</strong>na tıklayın. Müşterinin mesajını
+                    okuyup anında cevap yazın.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80">
+                  <p className="font-bold text-blue-900">2. Yeşil Boş Saati Seçip Randevu Yazın</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    <strong>Takvim</strong> ekranından (veya sohbetin sağından) uzmanı seçin.{" "}
+                    <strong>Yeşil</strong> saatler boş, <strong>kırmızı</strong> saatler doludur.
+                  </p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <p className="font-bold text-slate-900">3. Gerisini Sistem Halleder</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Kaydet dediğinizde randevu uzmanın Google Takvimine işlenir, müşteriye
+                    WhatsApp&apos;tan onay ve hatırlatma mesajı otomatik gider.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold"
+              >
+                Anladım, Kapat
+              </button>
+            </div>
+          </div>
+        )}
 
         <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-7xl w-full mx-auto">{children}</main>
       </div>
