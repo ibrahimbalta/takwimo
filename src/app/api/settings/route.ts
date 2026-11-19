@@ -30,6 +30,12 @@ export async function GET() {
 
 const updateSettingsSchema = z.object({
   name: z.string().min(2).optional(),
+  sector: z.string().max(80).nullable().optional(),
+  staffTitle: z.string().min(2).max(40).optional(),
+  phone: z.string().max(40).nullable().optional(),
+  address: z.string().max(300).nullable().optional(),
+  website: z.string().max(200).nullable().optional(),
+  description: z.string().max(600).nullable().optional(),
   timezone: z.string().optional(),
   workStartHour: z.string().optional(),
   workEndHour: z.string().optional(),

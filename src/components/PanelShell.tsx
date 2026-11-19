@@ -36,7 +36,7 @@ interface SessionInfo {
 const ROLE_LABELS: Record<string, string> = {
   OWNER: "İşletme Sahibi",
   ADMIN: "Yönetici",
-  STAFF: "Doktor / Personel",
+  STAFF: "Ekip Üyesi",
 };
 
 const NAV_ITEMS = [
@@ -64,6 +64,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [staffTitle, setStaffTitle] = useState<string>("Ekip Üyesi");
   const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"DEMO" | "LIVE">("DEMO");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -82,6 +83,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!active || !data?.session) return;
         setSession(data.session);
+        setStaffTitle(data.tenant?.staffTitle || "Ekip Üyesi");
         setSubscriptionEndsAt(data.tenant?.subscriptionEndsAt ?? null);
         setIntegrationMode(data.integrationMode === "LIVE" ? "LIVE" : "DEMO");
       })
@@ -151,7 +153,9 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white truncate">{session?.name ?? "..."}</p>
                 <p className="text-[11px] text-emerald-400 font-medium truncate">
-                  {ROLE_LABELS[session?.role ?? ""] ?? session?.role ?? "Üye"}
+                  {session?.role === "STAFF"
+                    ? staffTitle
+                    : ROLE_LABELS[session?.role ?? ""] ?? session?.role ?? "Ekip Üyesi"}
                 </p>
               </div>
             </div>
