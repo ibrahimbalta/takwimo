@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, ApiError, handleApiError } from "@/lib/tenant-guard";
 import { recordAuditLog } from "@/lib/audit";
 
-const ARCHIVE_TAG = "Arşiv";
+const ARCHIVE_TAG = "__ARCHIVED__";
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");

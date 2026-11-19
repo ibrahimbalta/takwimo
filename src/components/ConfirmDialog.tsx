@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { AlertTriangle, X } from "lucide-react";
 
 export interface ConfirmDialogProps {
@@ -26,15 +26,43 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelBtnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!open) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    // Focus safe cancel button first on destructive confirmation dialogs
+    cancelBtnRef.current?.focus();
+
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && !loading) {
         onCancel();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     }
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
   }, [open, loading, onCancel]);
 
   if (!open) return null;
@@ -53,6 +81,7 @@ export function ConfirmDialog({
       }}
     >
       <div
+        ref={dialogRef}
         className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
@@ -65,13 +94,16 @@ export function ConfirmDialog({
                   : "bg-amber-50 text-amber-600 border border-amber-200"
               }`}
             >
-              <AlertTriangle className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h3 id="confirm-dialog-title" className="text-base font-bold text-slate-950">
                 {title}
               </h3>
-              <p id="confirm-dialog-desc" className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+              <p
+                id="confirm-dialog-desc"
+                className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed"
+              >
                 {description}
               </p>
             </div>
@@ -81,7 +113,7 @@ export function ConfirmDialog({
             disabled={loading}
             onClick={onCancel}
             aria-label="Kapat"
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
           >
             <X className="w-4 h-4" />
           </button>
@@ -89,10 +121,11 @@ export function ConfirmDialog({
 
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
+            ref={cancelBtnRef}
             type="button"
             disabled={loading}
             onClick={onCancel}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
           >
             {cancelLabel}
           </button>
@@ -100,10 +133,10 @@ export function ConfirmDialog({
             type="button"
             disabled={loading}
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white disabled:opacity-60 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
               isDanger
-                ? "bg-rose-600 hover:bg-rose-700"
-                : "bg-amber-600 hover:bg-amber-700"
+                ? "bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-500"
+                : "bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500"
             }`}
           >
             {loading ? "İşleniyor..." : confirmLabel}

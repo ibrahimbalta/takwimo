@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, Clock, CalendarClock } from "lucide-react";
 import { formatDateTR, formatPhoneDisplay, formatTimeTR } from "@/lib/utils";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { StatusBadge, ToastBanner, LoadingSkeleton, ErrorState } from "@/components/ui";
 
 interface AppointmentRow {
   id: string;
@@ -19,56 +20,92 @@ interface AppointmentRow {
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingCancel, setPendingCancel] = useState<AppointmentRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/appointments?status=${statusFilter}`);
-    if (res.ok) {
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/appointments?status=${statusFilter}`);
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        setLoadError(j?.error ?? "Randevular yüklenemedi.");
+        return;
+      }
       const data = await res.json();
       setAppointments(data.appointments ?? []);
+    } catch {
+      setLoadError("Sunucuya bağlanılamadı.");
+    } finally {
+      setLoading(false);
     }
   }, [statusFilter]);
 
   useEffect(() => {
-    load();
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [load]);
 
   async function updateStatus(id: string, status: string) {
+    setBusyId(id);
     setFeedback(null);
-    const res = await fetch(`/api/appointments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) {
-      setFeedback(`Randevu durumu güncellendi (${status}).`);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({ type: "err", text: data.error ?? "Randevu durumu güncellenemedi." });
+        return;
+      }
+      setFeedback({ type: "ok", text: "Randevu durumu güncellendi." });
       await load();
+    } catch {
+      setFeedback({ type: "err", text: "Bağlantı hatası oluştu." });
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function reschedulePlusOneHour(appt: AppointmentRow) {
+    setBusyId(appt.id);
     setFeedback(null);
-    const nextStart = new Date(new Date(appt.startAt).getTime() + 60 * 60 * 1000);
-    const nextEnd = new Date(new Date(appt.endAt).getTime() + 60 * 60 * 1000);
-    const res = await fetch(`/api/appointments/${appt.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        startAt: nextStart.toISOString(),
-        endAt: nextEnd.toISOString(),
-        status: "RESCHEDULED",
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setFeedback(data.error ?? "Saat güncellenemedi.");
-      return;
+    try {
+      const nextStart = new Date(new Date(appt.startAt).getTime() + 60 * 60 * 1000);
+      const nextEnd = new Date(new Date(appt.endAt).getTime() + 60 * 60 * 1000);
+      const res = await fetch(`/api/appointments/${appt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startAt: nextStart.toISOString(),
+          endAt: nextEnd.toISOString(),
+          status: "RESCHEDULED",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFeedback({ type: "err", text: data.error ?? "Saat güncellenemedi." });
+        return;
+      }
+      setFeedback({
+        type: "ok",
+        text: "Randevu +1 saat ertelendi ve değişiklik bildirimi tetiklendi.",
+      });
+      await load();
+    } catch {
+      setFeedback({ type: "err", text: "Bağlantı hatası oluştu." });
+    } finally {
+      setBusyId(null);
     }
-    setFeedback("Randevu +1 saat ertelendi ve değişiklik bildirimi tetiklendi.");
-    await load();
   }
 
   return (
@@ -86,16 +123,18 @@ export default function AppointmentsPage() {
             text="'Onayla', '+1 Saat Ertele' veya 'İptal Et' butonlarına bastığınızda hem Google Takvim güncellenir hem de müşteriye WhatsApp'tan otomatik bilgi mesajı gider."
           />
           <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 self-start"
-        >
-          <option value="ALL">Tüm Durumlar</option>
-          <option value="CONFIRMED">Onaylı</option>
-          <option value="PENDING">Bekleyen</option>
-          <option value="RESCHEDULED">Ertelenen</option>
-          <option value="CANCELLED">İptal</option>
-        </select>
+            aria-label="Randevu durum filtresi"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 self-start"
+          >
+            <option value="ALL">Tüm Durumlar</option>
+            <option value="CONFIRMED">Onaylandı</option>
+            <option value="PENDING">Bekliyor</option>
+            <option value="RESCHEDULED">Ertelendi</option>
+            <option value="COMPLETED">Tamamlandı</option>
+            <option value="CANCELLED">İptal Edildi</option>
+          </select>
         </div>
       </div>
 
@@ -105,11 +144,14 @@ export default function AppointmentsPage() {
       />
 
       {feedback && (
-        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">
-          {feedback}
-        </div>
+        <ToastBanner type={feedback.type} text={feedback.text} onClose={() => setFeedback(null)} />
       )}
 
+      {loading ? (
+        <LoadingSkeleton rows={5} />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={load} />
+      ) : (
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="divide-y divide-slate-100">
           {appointments.map((appt) => (
@@ -120,9 +162,7 @@ export default function AppointmentsPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-slate-900 text-sm">{appt.title}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-50 text-violet-700">
-                    {appt.status}
-                  </span>
+                  <StatusBadge status={appt.status} domain="appointment" />
                   {appt.isDemo && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                       DEMO
@@ -142,8 +182,10 @@ export default function AppointmentsPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 {appt.status !== "CONFIRMED" && appt.status !== "CANCELLED" && (
                   <button
+                    type="button"
+                    disabled={busyId === appt.id}
                     onClick={() => updateStatus(appt.id, "CONFIRMED")}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Onayla
@@ -152,16 +194,19 @@ export default function AppointmentsPage() {
                 {appt.status !== "CANCELLED" && (
                   <>
                     <button
+                      type="button"
+                      disabled={busyId === appt.id}
                       onClick={() => reschedulePlusOneHour(appt)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-semibold hover:bg-sky-100 disabled:opacity-50"
                     >
                       <CalendarClock className="w-3.5 h-3.5" />
                       +1 Saat Ertele
                     </button>
                     <button
                       type="button"
+                      disabled={busyId === appt.id}
                       onClick={() => setPendingCancel(appt)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-medium hover:bg-rose-100"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 disabled:opacity-50"
                     >
                       <XCircle className="w-3.5 h-3.5" />
                       İptal Et
@@ -178,6 +223,7 @@ export default function AppointmentsPage() {
           )}
         </div>
       </div>
+      )}
 
       <ConfirmDialog
         open={Boolean(pendingCancel)}

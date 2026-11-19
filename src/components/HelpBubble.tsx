@@ -38,7 +38,7 @@ export function HelpBubble({
           setOpen((v) => !v);
         }}
         aria-label="Açıklamayı göster"
-        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
       >
         <HelpCircle className="w-3.5 h-3.5" />
       </button>
@@ -80,7 +80,29 @@ export function PageGuideBanner({
   description: string;
   steps?: string[];
 }) {
+  const storageKey = `takwimo:guide-dismissed:${title}`;
   const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(storageKey) === "1") {
+        const timer = setTimeout(() => setHidden(true), 0);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // Ignore storage restrictions
+    }
+  }, [storageKey]);
+
+  function dismiss() {
+    setHidden(true);
+    try {
+      window.localStorage.setItem(storageKey, "1");
+    } catch {
+      // Ignore storage restrictions
+    }
+  }
+
   if (hidden) return null;
 
   return (
@@ -111,9 +133,10 @@ export function PageGuideBanner({
       </div>
       <button
         type="button"
-        onClick={() => setHidden(true)}
+        onClick={dismiss}
         title="Rehberi Gizle"
-        className="text-emerald-700/60 hover:text-emerald-900 p-1 rounded-lg"
+        aria-label="Rehberi Gizle"
+        className="text-emerald-700/60 hover:text-emerald-900 p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
       >
         <X className="w-4 h-4" />
       </button>

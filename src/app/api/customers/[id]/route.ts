@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireRole, ApiError, handleApiError } from "@/lib/tenant-guard";
 import { recordAuditLog } from "@/lib/audit";
 
-const ARCHIVE_TAG = "Arşiv";
+const ARCHIVE_TAG = "__ARCHIVED__";
 
 async function assertStaffCanAccessContact(
   tenantId: string,
@@ -286,12 +286,26 @@ export async function PATCH(
       }
     }
 
+    let sanitizedTags: string | undefined = undefined;
+    if (parsed.data.tags !== undefined) {
+      const wasArchived = existing.tags
+        .split(",")
+        .map((t) => t.trim())
+        .includes(ARCHIVE_TAG);
+      const userTags = parsed.data.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => Boolean(t) && t !== ARCHIVE_TAG);
+      if (wasArchived) userTags.push(ARCHIVE_TAG);
+      sanitizedTags = userTags.join(", ");
+    }
+
     const contact = await prisma.contact.update({
       where: { id: existing.id },
       data: {
         ...(parsed.data.name ? { name: parsed.data.name.trim() } : {}),
         ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes?.trim() || null } : {}),
-        ...(parsed.data.tags !== undefined ? { tags: parsed.data.tags.trim() } : {}),
+        ...(sanitizedTags !== undefined ? { tags: sanitizedTags } : {}),
       },
     });
 

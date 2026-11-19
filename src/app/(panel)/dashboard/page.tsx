@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDateTR, formatTimeTR } from "@/lib/utils";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
+import { StatusBadge, ErrorState } from "@/components/ui";
 
 interface DashboardData {
   stats: {
@@ -42,12 +43,29 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  function loadDashboard() {
+    setLoading(true);
+    setError(null);
+    fetch("/api/dashboard")
+      .then(async (r) => {
+        if (!r.ok) {
+          const j = await r.json().catch(() => null);
+          throw new Error(j?.error ?? "Özet verileri yüklenemedi.");
+        }
+        return r.json();
+      })
+      .then((d) => setData(d))
+      .catch((err) => setError((err as Error)?.message ?? "Sunucuya bağlanılamadı."))
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then((d) => setData(d))
-      .finally(() => setLoading(false));
+    const timer = setTimeout(() => {
+      loadDashboard();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
@@ -61,6 +79,10 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={loadDashboard} />;
   }
 
   const stats = data?.stats;
@@ -123,8 +145,8 @@ export default function DashboardPage() {
         title="Burası İşletmenizin Özet Ekranıdır"
         description="Bugün kaç randevunuz var, cevap bekleyen WhatsApp mesajı kaldı mı hepsini tek bakışta buradan görebilirsiniz."
         steps={[
-          "Mesajlara bakmak için 'Gelen Kutusuna Git' butonuna basın",
-          "Takvimi görmek için 'Takvimi Aç' butonuna tıklayın",
+          "Mesajlara bakmak için 'WhatsApp Mesajlarına Bak' kartına basın",
+          "Randevu eklemek için '+ Yeni Randevu Oluştur' butonuna tıklayın",
           "Bilmediğiniz kutuların yanındaki (?) işaretine dokunun",
         ]}
       />
@@ -143,11 +165,11 @@ export default function DashboardPage() {
             <p className="text-3xl font-bold text-slate-900 mt-2">
               {stats?.todayAppointmentsCount ?? 0}
             </p>
-            <Link href="/appointments" className="text-xs text-violet-600 font-medium mt-2 inline-flex items-center gap-1">
+            <Link href="/appointments" className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold mt-2 inline-flex items-center gap-1">
               Tümünü gör <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
             <CalendarCheck2 className="w-5 h-5" />
           </div>
         </div>
@@ -212,16 +234,16 @@ export default function DashboardPage() {
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">Yaklaşan Randevular</h2>
-          <Link href="/appointments" className="text-xs font-medium text-violet-600 hover:underline">
+          <Link href="/appointments" className="text-xs font-semibold text-emerald-700 hover:underline">
             Randevu Yönetimi
           </Link>
         </div>
         {data?.upcomingAppointments.length ? (
           <div className="divide-y divide-slate-100">
             {data.upcomingAppointments.map((appt) => (
-              <div key={appt.id} className="px-6 py-4 flex items-center justify-between gap-4">
+              <div key={appt.id} className="px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                     <Clock className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
@@ -238,13 +260,11 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 space-y-1">
                   <p className="text-xs font-semibold text-slate-800">
                     {formatDateTR(appt.startAt)} • {formatTimeTR(appt.startAt)}
                   </p>
-                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700">
-                    {appt.status}
-                  </span>
+                  <StatusBadge status={appt.status} domain="appointment" />
                 </div>
               </div>
             ))}

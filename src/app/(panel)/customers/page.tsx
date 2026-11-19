@@ -127,7 +127,7 @@ function parseTags(raw?: string | null): string[] {
   return raw
     .split(",")
     .map((t) => t.trim())
-    .filter(Boolean);
+    .filter((t) => Boolean(t) && t !== "__ARCHIVED__");
 }
 
 function getInitials(name: string): string {
