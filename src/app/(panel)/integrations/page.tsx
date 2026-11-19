@@ -46,7 +46,10 @@ declare global {
     FB?: {
       init: (params: Record<string, unknown>) => void;
       login: (
-        cb: (response: { authResponse?: { code?: string } }) => void,
+        cb: (response: {
+          status?: string;
+          authResponse?: { code?: string; accessToken?: string };
+        }) => void,
         options: Record<string, unknown>
       ) => void;
     };
@@ -158,9 +161,12 @@ export default function IntegrationsPage() {
       window.FB.login(
         (response) => {
           const code = response?.authResponse?.code;
-          if (!code) {
+          const fbAccessToken = response?.authResponse?.accessToken;
+          if (!code && !fbAccessToken) {
             setConnectingMeta(false);
-            setFeedback("WhatsApp bağlantısı iptal edildi.");
+            setFeedback(
+              `WhatsApp bağlantısı tamamlanamadı (Meta yanıtı: ${response?.status ?? "iptal"}).`
+            );
             return;
           }
           fetch("/api/integrations/whatsapp/embedded-signup", {
@@ -168,6 +174,7 @@ export default function IntegrationsPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               code,
+              accessToken: fbAccessToken,
               wabaId: embeddedMetaRef.current.wabaId,
               phoneNumberId: embeddedMetaRef.current.phoneNumberId,
             }),
@@ -187,7 +194,7 @@ export default function IntegrationsPage() {
           config_id: cfg.configId,
           response_type: "code",
           override_default_response_type: true,
-          extras: { setup: {}, featureType: "" },
+          extras: { setup: {}, sessionInfoVersion: "3" },
         }
       );
     };

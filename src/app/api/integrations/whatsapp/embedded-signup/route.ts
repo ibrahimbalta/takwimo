@@ -6,11 +6,16 @@ import { encryptSecret } from "@/lib/crypto";
 import { recordAuditLog } from "@/lib/audit";
 import { getPlatformConfigMap } from "@/lib/platform-config";
 
-const embeddedSignupSchema = z.object({
-  code: z.string().min(5, "Meta yetkilendirme kodu eksik."),
-  wabaId: z.string().optional(),
-  phoneNumberId: z.string().optional(),
-});
+const embeddedSignupSchema = z
+  .object({
+    code: z.string().min(5).optional(),
+    accessToken: z.string().min(10).optional(),
+    wabaId: z.string().optional(),
+    phoneNumberId: z.string().optional(),
+  })
+  .refine((d) => Boolean(d.code || d.accessToken), {
+    message: "Meta yetkilendirme kodu veya erişim anahtarı eksik.",
+  });
 
 /**
  * Exchanges a Meta Embedded Signup OAuth code for a Business Access Token,
@@ -36,26 +41,29 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, parsed.error.issues[0]?.message ?? "Geçersiz istek.");
     }
 
-    // 1. Exchange code for access token
-    const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
-    tokenUrl.searchParams.set("client_id", appId);
-    tokenUrl.searchParams.set("client_secret", appSecret);
-    tokenUrl.searchParams.set("code", parsed.data.code);
+    // 1. Obtain access token (either directly from FB.login or by exchanging OAuth code)
+    let accessToken = parsed.data.accessToken?.trim() ?? "";
+    if (!accessToken && parsed.data.code) {
+      const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+      tokenUrl.searchParams.set("client_id", appId);
+      tokenUrl.searchParams.set("client_secret", appSecret);
+      tokenUrl.searchParams.set("code", parsed.data.code);
 
-    const tokenRes = await fetch(tokenUrl.toString());
-    const tokenData = (await tokenRes.json()) as {
-      access_token?: string;
-      error?: { message?: string };
-    };
+      const tokenRes = await fetch(tokenUrl.toString());
+      const tokenData = (await tokenRes.json()) as {
+        access_token?: string;
+        error?: { message?: string };
+      };
 
-    if (!tokenRes.ok || !tokenData.access_token) {
-      throw new ApiError(
-        400,
-        tokenData.error?.message ?? "Meta erişim anahtarı alınamadı."
-      );
+      if (!tokenRes.ok || !tokenData.access_token) {
+        throw new ApiError(
+          400,
+          tokenData.error?.message ?? "Meta erişim anahtarı alınamadı."
+        );
+      }
+      accessToken = tokenData.access_token;
     }
 
-    const accessToken = tokenData.access_token;
     let wabaId = parsed.data.wabaId?.trim() || "";
     let phoneNumberId = parsed.data.phoneNumberId?.trim() || "";
     let displayPhone = "WhatsApp Business";
@@ -77,6 +85,31 @@ export async function POST(req: NextRequest) {
         );
         if (wabaScope?.target_ids?.[0]) {
           wabaId = wabaScope.target_ids[0];
+        }
+      }
+    }
+
+    // 2b. Fallback: discover WABA via /me/businesses if granular_scopes didn't list target_ids
+    if (!wabaId) {
+      const bizRes = await fetch(
+        "https://graph.facebook.com/v21.0/me/businesses?fields=owned_whatsapp_business_accounts{id,name},client_whatsapp_business_accounts{id,name}",
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (bizRes.ok) {
+        const bizData = (await bizRes.json()) as {
+          data?: Array<{
+            owned_whatsapp_business_accounts?: { data?: Array<{ id: string }> };
+            client_whatsapp_business_accounts?: { data?: Array<{ id: string }> };
+          }>;
+        };
+        for (const biz of bizData.data ?? []) {
+          const foundId =
+            biz.owned_whatsapp_business_accounts?.data?.[0]?.id ??
+            biz.client_whatsapp_business_accounts?.data?.[0]?.id;
+          if (foundId) {
+            wabaId = foundId;
+            break;
+          }
         }
       }
     }
