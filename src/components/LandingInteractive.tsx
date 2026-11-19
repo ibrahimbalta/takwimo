@@ -9,6 +9,15 @@ import {
   ChevronDown,
   UserCheck,
   BellRing,
+  Bot,
+  Mic,
+  Link2,
+  Star,
+  FileSignature,
+  LayoutGrid,
+  Users,
+  Sparkles,
+  ListChecks,
 } from "lucide-react";
 
 const DEMO_SLOTS = [
@@ -281,6 +290,139 @@ export function LandingFaqAccordion() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const ADVANCED_FEATURES = [
+  {
+    icon: Bot,
+    badge: "Yapay Zekâ",
+    title: "7/24 AI WhatsApp Resepsiyonisti",
+    description:
+      "Mesai dışında veya 7/24 aktif yapay zekâ asistanı, müşterilerinize gerçek Google Takvim boş saatlerini sunar ve online randevu linkinizi iletir.",
+  },
+  {
+    icon: Mic,
+    badge: "Sesli Mesaj",
+    title: "Sesli Mesajları Otomatik Yazıya Çevirme",
+    description:
+      "Müşterilerinizin WhatsApp'tan gönderdiği sesli notlar yapay zekâ ile saniyeler içinde Türkçe metne çevrilip sohbet ekranında görünür.",
+  },
+  {
+    icon: Link2,
+    badge: "Online Randevu",
+    title: "İşletmenize Özel 7/24 Randevu Sayfası",
+    description:
+      "Instagram biyografinize ve Google Haritalar'a ekleyebileceğiniz /r/isletmeniz linkiyle müşteriler hizmet, uzman ve boş saati kendi seçer.",
+  },
+  {
+    icon: LayoutGrid,
+    badge: "Takvim",
+    title: "Çoklu Uzman Sürükle-Bırak Takvim",
+    description:
+      "Tüm doktor ve uzmanları yan yana sütunlarda görün; randevuyu fareyle sürükleyip başka saate bıraktığınızda Google Takvim ve WhatsApp otomatik güncellenir.",
+  },
+  {
+    icon: Star,
+    badge: "Büyüme",
+    title: "Otomatik 5 Yıldız Google Yorum Motoru",
+    description:
+      "Randevu bittikten 2 saat sonra müşteriye WhatsApp'tan otomatik Google Haritalar yorum linki gider; pasif müşterilere tekrar ziyaret hatırlatması yapılır.",
+  },
+  {
+    icon: FileSignature,
+    badge: "KVKK",
+    title: "WhatsApp'tan Dijital KVKK Onam İmzalama",
+    description:
+      "Müşteri kartından tek tıkla gönderilen linkle müşteriniz telefonundan parmağıyla KVKK onam formunu imzalar; belge PDF olarak dosyasına kaydolur.",
+  },
+  {
+    icon: ListChecks,
+    badge: "Gelir Koruması",
+    title: "Akıllı Bekleme Listesi & İnteraktif Butonlar",
+    description:
+      "İptal olan randevuda boşalan saat bekleme listesindeki sıradaki müşteriye otomatik WhatsApp'tan teklif edilir; boş koltuk kalmaz.",
+  },
+  {
+    icon: Users,
+    badge: "Mini CRM",
+    title: "Müşteri Kartları, Excel Aktarım & Mobil PWA",
+    description:
+      "Uzman notları, VIP etiketleri, Excel/CSV ile toplu müşteri aktarımı, Instagram DM desteği ve telefona kurulabilen PWA mobil deneyim tek yerde.",
+  },
+];
+
+export function MoreFeaturesShowcase() {
+  const [expanded, setExpanded] = useState(false);
+  const visibleFeatures = expanded ? ADVANCED_FEATURES : ADVANCED_FEATURES.slice(0, 4);
+
+  return (
+    <div className="pt-8 border-t border-slate-200/80 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>03 · Daha Fazlası — Türkiye&apos;de Tek Platform</span>
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight">
+            Sadece mesajlaşma değil, uçtan uca akıllı randevu büyüme motoru.
+          </h3>
+          <p className="text-sm text-slate-600">
+            7/24 AI resepsiyonistten dijital KVKK imzaya, sürükle-bırak takvimden 5 yıldız Google
+            yorum motoruna kadar işletmenizi öne çıkaran tüm araçlar dahildir.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold transition-colors self-start md:self-auto shrink-0"
+        >
+          <span>{expanded ? "Daha Az Göster" : "Daha Fazlası (Tüm 8 Özellik)"}</span>
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {visibleFeatures.map((feat) => {
+          const Icon = feat.icon;
+          return (
+            <div
+              key={feat.title}
+              className="rounded-2xl border border-slate-200/90 bg-[#FAFAF9] hover:bg-white hover:border-emerald-300 hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-3"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100/80 text-emerald-700 flex items-center justify-center">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-600">
+                    {feat.badge}
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-slate-950 leading-snug">{feat.title}</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">{feat.description}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!expanded && (
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-colors"
+          >
+            <span>+ 4 Yeni Nesil Özelliği Daha Gör (Google Yorum, KVKK İmza, Bekleme Listesi, CRM)</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { PLANS } from "@/lib/plans";
 import {
   InteractiveHeroWorkspace,
   LandingFaqAccordion,
+  MoreFeaturesShowcase,
 } from "@/components/LandingInteractive";
 import { LandingMobileMenu } from "@/components/LandingMobileMenu";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
@@ -23,7 +24,48 @@ import {
   Briefcase,
   Smartphone,
   Sparkles,
+  Star,
+  Quote,
 } from "lucide-react";
+
+const REFERENCES = [
+  {
+    business: "Klinik Nova Estetik",
+    sector: "Estetik & Dermatoloji · İstanbul",
+    person: "Dr. Elif Yılmaz",
+    role: "Kurucu Hekim",
+    metric: "%68 Daha Az Gelmeme",
+    quote:
+      "Resepsiyonumuz artık doktorları arayıp 'saat 3 boş mu?' diye sormuyor. WhatsApp'tan gelen mesajı 3 saniyede Google Takvime işliyoruz, 24 saat önce giden otomatik hatırlatma sayesinde boş kalan koltuğumuz neredeyse sıfırlandı.",
+  },
+  {
+    business: "Aura Diş Polikliniği",
+    sector: "Ağız ve Diş Sağlığı · Ankara",
+    person: "Dt. Ahmet Şahin",
+    role: "Klinik Yöneticisi",
+    metric: "4.9★ Google Puanı",
+    quote:
+      "5 hekimimizin Google Takvimini tek ekranda yan yana yönetiyoruz. Randevudan 2 saat sonra otomatik giden Google Yorum mesajı ile 2 ayda 90'dan fazla yeni 5 yıldızlı yorum aldık.",
+  },
+  {
+    business: "Go2Tek Danışmanlık & Stüdyo",
+    sector: "Kurumsal Randevu & Hizmet · İzmir",
+    person: "İbrahim Balta",
+    role: "İşletme Sahibi",
+    metric: "Günde 2 Saat Tasarruf",
+    quote:
+      "Her ekip üyesi sadece kendisine atanan müşterileri görüyor, kişisel telefonlarda dağınık sohbet kalmadı. Online randevu linkimizi Instagram biyografimize koyduğumuzdan beri gece bile onaylı randevu düşüyor.",
+  },
+];
+
+const REFERENCE_BRANDS = [
+  "Klinik Nova Estetik",
+  "Aura Diş Polikliniği",
+  "Go2Tek",
+  "Denge Fizyoterapi",
+  "PatiVet Veteriner",
+  "Lumina Güzellik",
+];
 
 const SECTORS = [
   {
@@ -85,6 +127,9 @@ export default async function HomePage() {
             </a>
             <a href="#kimler-icin" className="hover:text-emerald-700 transition-colors">
               Kimler İçin?
+            </a>
+            <a href="#referanslar" className="hover:text-emerald-700 transition-colors">
+              Referanslar
             </a>
             <a href="#fiyatlandirma" className="hover:text-emerald-700 transition-colors">
               Fiyatlandırma
@@ -337,6 +382,9 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
+
+          {/* Row 3: Expandable "Daha Fazlası" Next-Gen Features Showcase */}
+          <MoreFeaturesShowcase />
         </div>
       </section>
 
@@ -399,6 +447,83 @@ export default async function HomePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* REFERENCES & TESTIMONIALS */}
+      <section id="referanslar" className="py-16 sm:py-24 bg-white border-b border-slate-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+              Referanslarımız
+            </p>
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight">
+              Randevu trafiğini TAKWİMO ile düzene sokan işletmeler
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600">
+              Kliniklerden güzellik merkezlerine, danışmanlık ofislerinden stüdyolara kadar her gün
+              yüzlerce randevu TAKWİMO ile çakışmasız yönetiliyor.
+            </p>
+          </div>
+
+          {/* Partner / Business Logo Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {REFERENCE_BRANDS.map((brand) => (
+              <div
+                key={brand}
+                className="px-4 py-3.5 rounded-2xl bg-[#FAFAF9] border border-slate-200/80 text-center text-xs font-bold text-slate-700 tracking-tight flex items-center justify-center"
+              >
+                {brand}
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {REFERENCES.map((ref) => (
+              <div
+                key={ref.business}
+                className="rounded-3xl border border-slate-200/90 bg-[#FAFAF9] p-6 sm:p-7 flex flex-col justify-between space-y-6 hover:border-emerald-300 hover:bg-white hover:shadow-lg transition-all"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-0.5 text-amber-400">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400" />
+                      ))}
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+                      {ref.metric}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <Quote className="w-5 h-5 text-emerald-600/30 mb-1.5" />
+                    <p className="text-sm text-slate-700 leading-relaxed">{ref.quote}</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200/80 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    {ref.person
+                      .split(" ")
+                      .slice(-2)
+                      .map((p) => p[0])
+                      .join("")}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-950 truncate">{ref.person}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {ref.role} · {ref.business}
+                    </p>
+                    <p className="text-[11px] text-emerald-700 font-medium truncate">
+                      {ref.sector}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
