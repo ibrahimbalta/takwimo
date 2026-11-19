@@ -32,7 +32,17 @@ export async function GET(
       conversation.assignedMembershipId &&
       conversation.assignedMembershipId !== session.membershipId
     ) {
-      throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
+      const hasOwnAppt = await prisma.appointment.findFirst({
+        where: {
+          tenantId: session.tenantId,
+          conversationId: conversation.id,
+          assignedMembershipId: session.membershipId,
+        },
+        select: { id: true },
+      });
+      if (!hasOwnAppt) {
+        throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
+      }
     }
 
     if (conversation.unreadCount > 0) {
@@ -83,7 +93,17 @@ export async function POST(
       conversation.assignedMembershipId &&
       conversation.assignedMembershipId !== session.membershipId
     ) {
-      throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
+      const hasOwnAppt = await prisma.appointment.findFirst({
+        where: {
+          tenantId: session.tenantId,
+          conversationId: conversation.id,
+          assignedMembershipId: session.membershipId,
+        },
+        select: { id: true },
+      });
+      if (!hasOwnAppt) {
+        throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
+      }
     }
 
     const parsed = sendMsgSchema.safeParse(await req.json());

@@ -13,13 +13,19 @@ export async function GET(req: NextRequest) {
       ? {
           tenantId: session.tenantId,
           ...(filter === "mine"
-            ? { assignedMembershipId: session.membershipId }
+            ? {
+                OR: [
+                  { assignedMembershipId: session.membershipId },
+                  { appointments: { some: { assignedMembershipId: session.membershipId } } },
+                ],
+              }
             : filter === "unassigned"
             ? { assignedMembershipId: null }
             : {
                 OR: [
                   { assignedMembershipId: session.membershipId },
                   { assignedMembershipId: null },
+                  { appointments: { some: { assignedMembershipId: session.membershipId } } },
                 ],
               }),
         }
@@ -29,7 +35,7 @@ export async function GET(req: NextRequest) {
           ...(filter === "unassigned" ? { assignedMembershipId: null } : {}),
         };
 
-    const [conversations, waAccount] = await Promise.all([
+    const [conversations, waAccount, memberships] = await Promise.all([
       prisma.conversation.findMany({
         where: whereClause,
         include: {
@@ -46,10 +52,16 @@ export async function GET(req: NextRequest) {
         where: { tenantId: session.tenantId },
         select: { mode: true },
       }),
+      prisma.membership.findMany({
+        where: { tenantId: session.tenantId, isActive: true },
+        include: { user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
     return NextResponse.json({
       conversations,
+      memberships,
       role: session.role,
       currentMembershipId: session.membershipId,
       integrationMode: waAccount?.mode === "LIVE" ? "LIVE" : "DEMO",

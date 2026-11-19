@@ -136,6 +136,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (parsed.data.conversationId) {
+      await prisma.conversation.updateMany({
+        where: { id: parsed.data.conversationId, tenantId: session.tenantId },
+        data: { assignedMembershipId: member.id },
+      });
+    }
+
     const googleSync = await syncAppointmentToGoogle(appointment.id, "CREATE");
     await scheduleAppointmentAutomations(session.tenantId, appointment.id, "ON_CREATE");
 
