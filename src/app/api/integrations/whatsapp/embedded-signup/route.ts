@@ -68,28 +68,53 @@ export async function POST(req: NextRequest) {
     let phoneNumberId = parsed.data.phoneNumberId?.trim() || "";
     let displayPhone = "WhatsApp Business";
 
-    // 2. Discover WABA ID from debug_token granular_scopes if not provided by session event
-    if (!wabaId) {
-      const debugUrl = new URL("https://graph.facebook.com/v21.0/debug_token");
-      debugUrl.searchParams.set("input_token", accessToken);
-      debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
-      const debugRes = await fetch(debugUrl.toString());
-      if (debugRes.ok) {
-        const debugData = (await debugRes.json()) as {
-          data?: {
-            granular_scopes?: Array<{ scope: string; target_ids?: string[] }>;
-          };
+    // 2. Discover WABA ID (or Business Portfolio ID) from debug_token granular_scopes
+    const discoveredBusinessIds: string[] = [];
+    const debugUrl = new URL("https://graph.facebook.com/v21.0/debug_token");
+    debugUrl.searchParams.set("input_token", accessToken);
+    debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+    const debugRes = await fetch(debugUrl.toString());
+    if (debugRes.ok) {
+      const debugData = (await debugRes.json()) as {
+        data?: {
+          granular_scopes?: Array<{ scope: string; target_ids?: string[] }>;
         };
-        const wabaScope = debugData.data?.granular_scopes?.find(
+      };
+      const scopes = debugData.data?.granular_scopes ?? [];
+      if (!wabaId) {
+        const wabaScope = scopes.find(
           (s) => s.scope === "whatsapp_business_management" || s.scope === "whatsapp_business_messaging"
         );
         if (wabaScope?.target_ids?.[0]) {
           wabaId = wabaScope.target_ids[0];
         }
       }
+      const bizScope = scopes.find((s) => s.scope === "business_management");
+      for (const bid of bizScope?.target_ids ?? []) {
+        if (bid) discoveredBusinessIds.push(bid);
+      }
     }
 
-    // 2b. Fallback: discover WABA via /me/businesses if granular_scopes didn't list target_ids
+    // 2b. If we have Business Portfolio IDs from business_management, query their WABAs directly
+    if (!wabaId && discoveredBusinessIds.length > 0) {
+      for (const bizId of discoveredBusinessIds) {
+        for (const edge of ["owned_whatsapp_business_accounts", "client_whatsapp_business_accounts"]) {
+          const wabaRes = await fetch(`https://graph.facebook.com/v21.0/${bizId}/${edge}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (wabaRes.ok) {
+            const wabaJson = (await wabaRes.json()) as { data?: Array<{ id: string }> };
+            if (wabaJson.data?.[0]?.id) {
+              wabaId = wabaJson.data[0].id;
+              break;
+            }
+          }
+        }
+        if (wabaId) break;
+      }
+    }
+
+    // 2c. Fallback: discover WABA via /me/businesses
     if (!wabaId) {
       const bizRes = await fetch(
         "https://graph.facebook.com/v21.0/me/businesses?fields=owned_whatsapp_business_accounts{id,name},client_whatsapp_business_accounts{id,name}",
@@ -115,7 +140,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!wabaId) {
-      throw new ApiError(400, "WhatsApp Business Account (WABA) bulunamadı.");
+      throw new ApiError(
+        400,
+        "Seçilen işletme portföyünde aktif bir WhatsApp Business Account (WABA) bulunamadı. Lütfen Dijital74 portföyünü seçip tekrar deneyin."
+      );
     }
 
     // 3. Fetch phone numbers for this WABA
