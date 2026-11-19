@@ -1,0 +1,24 @@
+<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="takwimoMarkGrad" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="55%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#0F766E" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="36" height="36" rx="11" fill="url(#takwimoMarkGrad)" />
+  <rect x="12.5" y="7.5" width="3" height="5" rx="1.5" fill="#A7F3D0" />
+  <rect x="24.5" y="7.5" width="3" height="5" rx="1.5" fill="#A7F3D0" />
+  <path
+    d="M10 15.5C10 13.8431 11.3431 12.5 13 12.5H27C28.6569 12.5 30 13.8431 30 15.5V25.5C30 27.1569 28.6569 28.5 27 28.5H16.5L11.5 32V28.5H13C11.3431 28.5 10 27.1569 10 25.5V15.5Z"
+    fill="white"
+    fill-opacity="0.18"
+  />
+  <path
+    d="M14.5 21L18.2 24.5L25.8 16.8"
+    stroke="#FFFFFF"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
