@@ -44,7 +44,25 @@ export async function POST(req: NextRequest) {
 
     // 1. Obtain access token (either directly from FB.login or by exchanging OAuth code)
     let accessToken = parsed.data.accessToken?.trim() ?? "";
-    if (!accessToken && parsed.data.code) {
+    if (accessToken) {
+      // Best-effort exchange of short-lived User token for a 60-day long-lived token (no redirect_uri required)
+      try {
+        const exchangeUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+        exchangeUrl.searchParams.set("grant_type", "fb_exchange_token");
+        exchangeUrl.searchParams.set("client_id", appId);
+        exchangeUrl.searchParams.set("client_secret", appSecret);
+        exchangeUrl.searchParams.set("fb_exchange_token", accessToken);
+        const exRes = await fetch(exchangeUrl.toString());
+        if (exRes.ok) {
+          const exData = (await exRes.json()) as { access_token?: string };
+          if (exData.access_token) {
+            accessToken = exData.access_token;
+          }
+        }
+      } catch {
+        // Keep original token if already a non-expiring System-User token
+      }
+    } else if (parsed.data.code) {
       // Meta JS SDK FB.login code exchange uses redirect_uri="" for User tokens,
       // omitted redirect_uri for System-User tokens, or page URL in some flows.
       const redirectCandidates: Array<string | null> = [
