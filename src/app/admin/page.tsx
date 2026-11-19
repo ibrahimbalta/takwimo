@@ -26,6 +26,7 @@ import {
 import { TakvimoLogo } from "@/components/TakvimoLogo";
 import { AdminPlatformSettings } from "@/components/AdminPlatformSettings";
 import { AdminCmsEditor } from "@/components/AdminCmsEditor";
+import { CustomScroll } from "@/components/CustomScroll";
 import { formatDateTR, formatTimeTR, getSubscriptionAlert } from "@/lib/utils";
 
 interface TenantMember {
@@ -217,67 +218,69 @@ export default function StandaloneAdminCrmPage() {
           <TakvimoLogo variant="dark" size="sm" subtitle="SaaS CRM Konsolu" />
         </div>
 
-        <nav className="p-3 flex flex-col gap-1.5 flex-1">
-          <button
-            type="button"
-            onClick={() => setTab("tenants")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              tab === "tenants"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:bg-slate-900 hover:text-white"
-            }`}
-          >
-            <Building2 className="w-4 h-4 shrink-0" />
-            <span>Müşteri İşletmeler (CRM)</span>
-          </button>
+        <CustomScroll as="nav" variant="dark" className="flex-1 min-h-0">
+          <div className="p-3 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTab("tenants")}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                tab === "tenants"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              <Building2 className="w-4 h-4 shrink-0" />
+              <span>Müşteri İşletmeler (CRM)</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setTab("activity")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              tab === "activity"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:bg-slate-900 hover:text-white"
-            }`}
-          >
-            <Activity className="w-4 h-4 shrink-0" />
-            <span>Sistem Denetim Akışı</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setTab("activity")}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                tab === "activity"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              <Activity className="w-4 h-4 shrink-0" />
+              <span>Sistem Denetim Akışı</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setTab("settings")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              tab === "settings"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:bg-slate-900 hover:text-white"
-            }`}
-          >
-            <Settings className="w-4 h-4 shrink-0" />
-            <span>Entegrasyonlar & Ayarlar</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setTab("settings")}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                tab === "settings"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              <span>Entegrasyonlar & Ayarlar</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setTab("cms")}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              tab === "cms"
-                ? "bg-emerald-600 text-white"
-                : "text-slate-400 hover:bg-slate-900 hover:text-white"
-            }`}
-          >
-            <FileEdit className="w-4 h-4 shrink-0" />
-            <span>Site İçerikleri (CMS)</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setTab("cms")}
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                tab === "cms"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              <FileEdit className="w-4 h-4 shrink-0" />
+              <span>Site İçerikleri (CMS)</span>
+            </button>
 
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white"
-          >
-            <ExternalLink className="w-4 h-4 shrink-0" />
-            <span>İşletme Paneli Görünümü</span>
-          </Link>
-        </nav>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-white"
+            >
+              <ExternalLink className="w-4 h-4 shrink-0" />
+              <span>İşletme Paneli Görünümü</span>
+            </Link>
+          </div>
+        </CustomScroll>
 
         <div className="p-4 border-t border-slate-800">
           <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
@@ -413,7 +416,7 @@ export default function StandaloneAdminCrmPage() {
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600"
                   />
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                   {[
                     { id: "ALL", label: "Tümü" },
                     { id: "EXPIRING", label: "Bitişi Yaklaşan" },
@@ -681,7 +684,8 @@ export default function StandaloneAdminCrmPage() {
       {/* CRM Tenant Detail & Subscription Date Editor Drawer */}
       {selectedTenant && (
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full p-5 sm:p-6 shadow-2xl flex flex-col overflow-y-auto space-y-5">
+          <CustomScroll variant="light" className="w-full max-w-md bg-white h-full shadow-2xl">
+            <div className="p-5 sm:p-6 flex flex-col space-y-5">
             <div className="flex items-start justify-between pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">{selectedTenant.name}</h2>
@@ -810,7 +814,8 @@ export default function StandaloneAdminCrmPage() {
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </CustomScroll>
         </div>
       )}
     </div>

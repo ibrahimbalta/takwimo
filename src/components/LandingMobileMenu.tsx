@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
+import { CustomScroll } from "@/components/CustomScroll";
 
 export function LandingMobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [open, setOpen] = useState(false);
@@ -42,18 +43,20 @@ export function LandingMobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
               </button>
             </div>
 
-            <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
-              {links.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-3 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+            <CustomScroll as="nav" variant="light" className="flex-1 min-h-0">
+              <div className="py-4 space-y-1">
+                {links.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </CustomScroll>
 
             <div className="pt-4 border-t border-slate-100 space-y-2.5">
               <Link

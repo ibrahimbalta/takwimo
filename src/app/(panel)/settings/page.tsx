@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ShieldCheck, Save, UserX, FileText, Building2 } from "lucide-react";
 import { formatDateTR, formatTimeTR } from "@/lib/utils";
 import { HelpBubble } from "@/components/HelpBubble";
+import { CustomScroll } from "@/components/CustomScroll";
 
 interface SettingsData {
   tenant: {
@@ -306,23 +307,25 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-500">
             Müşteri talebi halinde ad, telefon ve mesaj içerikleri geri döndürülemez biçimde anonimleştirilir.
           </p>
-          <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-            {data?.contacts.map((c) => (
-              <div key={c.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-semibold text-slate-800">{c.name}</p>
-                  <p className="text-slate-500">{c.phoneE164}</p>
+          <CustomScroll variant="light" className="max-h-80">
+            <div className="divide-y divide-slate-100 pr-2">
+              {data?.contacts.map((c) => (
+                <div key={c.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-semibold text-slate-800">{c.name}</p>
+                    <p className="text-slate-500">{c.phoneE164}</p>
+                  </div>
+                  <button
+                    onClick={() => anonymizeContact(c.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-medium"
+                  >
+                    <UserX className="w-3.5 h-3.5" />
+                    Anonimleştir
+                  </button>
                 </div>
-                <button
-                  onClick={() => anonymizeContact(c.id)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-medium"
-                >
-                  <UserX className="w-3.5 h-3.5" />
-                  Anonimleştir
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </CustomScroll>
         </div>
       </div>
 

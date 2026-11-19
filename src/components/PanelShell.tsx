@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn, formatDateTR, getSubscriptionAlert } from "@/lib/utils";
 import { TakvimoLogo } from "@/components/TakvimoLogo";
+import { CustomScroll } from "@/components/CustomScroll";
 
 interface SessionInfo {
   name: string;
@@ -113,36 +114,38 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           <TakvimoLogo variant="dark" subtitle={session?.tenantName ?? "Yükleniyor..."} />
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all",
-                  active
-                    ? "bg-white/10 text-white shadow-inner border border-white/10"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
-                )}
-              >
-                <span
+        <CustomScroll as="nav" variant="dark" className="flex-1 min-h-0">
+          <div className="px-3 py-4 space-y-1">
+            {visibleNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
                   className={cn(
-                    "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                    "group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all",
                     active
-                      ? `bg-gradient-to-br ${item.glow} text-slate-950 shadow-sm`
-                      : "bg-slate-900 text-slate-400 group-hover:text-white"
+                      ? "bg-white/10 text-white shadow-inner border border-white/10"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
-                </span>
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+                  <span
+                    className={cn(
+                      "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                      active
+                        ? `bg-gradient-to-br ${item.glow} text-slate-950 shadow-sm`
+                        : "bg-slate-900 text-slate-400 group-hover:text-white"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </CustomScroll>
 
         <div className="p-3 border-t border-slate-800/80 bg-slate-900/50">
           <div className="px-3 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
@@ -338,26 +341,28 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 py-4 space-y-1.5 overflow-y-auto">
-              {visibleNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
-                      active ? "bg-white/10 text-emerald-400" : "text-slate-300"
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+            <CustomScroll variant="dark" className="flex-1 min-h-0">
+              <div className="py-4 space-y-1.5">
+                {visibleNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium",
+                        active ? "bg-white/10 text-emerald-400" : "text-slate-300"
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </CustomScroll>
             <button
               onClick={handleLogout}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-sm font-medium"

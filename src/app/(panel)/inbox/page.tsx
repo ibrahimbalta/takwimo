@@ -20,6 +20,7 @@ import {
 import { formatPhoneDisplay, formatTimeTR, isWithin24Hours } from "@/lib/utils";
 import { HelpBubble } from "@/components/HelpBubble";
 import { TimeSlotPicker } from "@/components/TimeSlotPicker";
+import { CustomScroll } from "@/components/CustomScroll";
 
 interface TeamMember {
   id: string;
@@ -381,8 +382,9 @@ export default function InboxPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-            {filteredConversations.map((conv) => {
+          <CustomScroll variant="light" className="flex-1 min-h-0">
+            <div className="divide-y divide-slate-100">
+              {filteredConversations.map((conv) => {
               const active = conv.id === selectedId;
               const lastMsg = conv.messages[0];
               const in24h = isWithin24Hours(conv.lastCustomerMessageAt);
@@ -464,7 +466,8 @@ export default function InboxPage() {
                 </p>
               </div>
             )}
-          </div>
+            </div>
+          </CustomScroll>
         </div>
 
         {/* Center: Modern WhatsApp Chat Canvas */}
@@ -561,8 +564,9 @@ export default function InboxPage() {
               )}
 
               {/* Messages Canvas */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5 bg-[#F4F6F5]">
-                {messages.map((msg) => {
+              <CustomScroll variant="light" className="flex-1 min-h-0 bg-[#F4F6F5]">
+                <div className="p-4 sm:p-5 space-y-2.5">
+                  {messages.map((msg) => {
                   const isOut = msg.direction === "OUTBOUND";
                   return (
                     <div
@@ -609,13 +613,14 @@ export default function InboxPage() {
                   );
                 })}
                 <div ref={messagesEndRef} />
-              </div>
+                </div>
+              </CustomScroll>
 
               {/* Composer + Quick Replies */}
               <div className="p-3 bg-white border-t border-slate-200/80 space-y-2.5">
                 {within24h ? (
                   <>
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                       {QUICK_REPLIES.map((qr) => (
                         <button
@@ -696,11 +701,13 @@ export default function InboxPage() {
 
         {/* Right: Quick Appointment Panel (collapsible on desktop) */}
         {showBookingPanel && (
-          <div
-            className={`lg:col-span-3 xl:col-span-3 p-4 bg-slate-50/70 overflow-y-auto ${
+          <CustomScroll
+            variant="light"
+            className={`lg:col-span-3 xl:col-span-3 bg-slate-50/70 min-h-0 ${
               mobileShowBooking ? "block" : "hidden lg:block"
             }`}
           >
+            <div className="p-4">
             <div className="flex items-center justify-between gap-2 mb-3.5">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -806,7 +813,8 @@ export default function InboxPage() {
             ) : (
               <p className="text-xs text-slate-400">Önce soldan bir konuşma seçin.</p>
             )}
-          </div>
+            </div>
+          </CustomScroll>
         )}
       </div>
     </div>

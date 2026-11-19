@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
+import { CustomScroll } from "@/components/CustomScroll";
 
 interface Slot {
   time: string;
@@ -75,42 +76,44 @@ export function TimeSlotPicker({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-1.5 max-h-44 overflow-y-auto pr-1">
-          {slots.map((slot) => {
-            const isSelected = selectedTime === slot.time;
-            if (!slot.available) {
+        <CustomScroll variant="light" className="max-h-44">
+          <div className="grid grid-cols-4 gap-1.5 pr-1">
+            {slots.map((slot) => {
+              const isSelected = selectedTime === slot.time;
+              if (!slot.available) {
+                return (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    disabled
+                    title={
+                      slot.source === "GOOGLE"
+                        ? "Google Takviminde dolu"
+                        : "TAKWİMO'da randevusu var"
+                    }
+                    className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-rose-50 text-rose-500 border border-rose-200 cursor-not-allowed line-through opacity-75"
+                  >
+                    {slot.time}
+                  </button>
+                );
+              }
               return (
                 <button
                   key={slot.time}
                   type="button"
-                  disabled
-                  title={
-                    slot.source === "GOOGLE"
-                      ? "Google Takviminde dolu"
-                      : "TAKWİMO'da randevusu var"
-                  }
-                  className="py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-rose-50 text-rose-500 border border-rose-200 cursor-not-allowed line-through opacity-75"
+                  onClick={() => onSelectTime(slot.time)}
+                  className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold border transition-all ${
+                    isSelected
+                      ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
+                      : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                  }`}
                 >
                   {slot.time}
                 </button>
               );
-            }
-            return (
-              <button
-                key={slot.time}
-                type="button"
-                onClick={() => onSelectTime(slot.time)}
-                className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold border transition-all ${
-                  isSelected
-                    ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
-                    : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                }`}
-              >
-                {slot.time}
-              </button>
-            );
-          })}
-        </div>
+            })}
+          </div>
+        </CustomScroll>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { formatDateTR, formatPhoneDisplay } from "@/lib/utils";
+import { CustomScroll } from "@/components/CustomScroll";
 
 interface CustomerRow {
   id: string;
@@ -209,8 +210,9 @@ export default function CustomersCrmPage() {
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100 max-h-[540px] overflow-y-auto">
-            {contacts.map((c) => {
+          <CustomScroll variant="light" className="max-h-[540px]">
+            <div className="divide-y divide-slate-100">
+              {contacts.map((c) => {
               const active = selected?.id === c.id;
               const tags = c.tags
                 .split(",")
@@ -258,7 +260,8 @@ export default function CustomersCrmPage() {
             {contacts.length === 0 && (
               <p className="p-8 text-center text-xs text-slate-400">Müşteri kaydı bulunamadı.</p>
             )}
-          </div>
+            </div>
+          </CustomScroll>
         </div>
 
         {/* Right: Customer Detail + Waitlist */}
