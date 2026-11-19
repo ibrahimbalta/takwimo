@@ -47,7 +47,6 @@ const NAV_ITEMS = [
   { href: "/integrations", label: "Bağlantılar", icon: Plug, glow: "from-teal-400 to-cyan-400", roles: ["OWNER", "ADMIN", "STAFF"] },
   { href: "/settings", label: "Ayarlar & KVKK", icon: Settings, glow: "from-slate-300 to-slate-400", roles: ["OWNER", "ADMIN"] },
   { href: "/billing", label: "Abonelik", icon: CreditCard, glow: "from-rose-400 to-pink-400", roles: ["OWNER", "ADMIN"] },
-  { href: "/super-admin", label: "SaaS Yönetimi", icon: ShieldCheck, glow: "from-emerald-300 to-cyan-300", superAdminOnly: true, roles: ["OWNER", "ADMIN", "STAFF"] },
 ];
 
 const MOBILE_PRIMARY = [
@@ -92,9 +91,6 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   }
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if ("superAdminOnly" in item && item.superAdminOnly) {
-      return Boolean(session?.isSuperAdmin);
-    }
     const userRole = session?.role ?? "STAFF";
     return item.roles.includes(userRole);
   });

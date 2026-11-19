@@ -3,28 +3,68 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin, ApiError, handleApiError } from "@/lib/tenant-guard";
 
+const PLAN_PRICES_TRY: Record<string, number> = {
+  STARTER: 1490,
+  PRO: 2490,
+};
+
 export async function GET() {
   try {
-    await requireSuperAdmin();
+    const admin = await requireSuperAdmin();
 
-    const tenants = await prisma.tenant.findMany({
-      include: {
-        _count: {
-          select: {
-            memberships: true,
-            appointments: true,
-            conversations: true,
+    const [tenants, recentAuditLogs, totalMessages] = await Promise.all([
+      prisma.tenant.findMany({
+        include: {
+          _count: {
+            select: {
+              memberships: true,
+              appointments: true,
+              conversations: true,
+              googleCalendarConnections: true,
+            },
+          },
+          memberships: {
+            include: { user: { select: { name: true, email: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+          whatsappAccounts: {
+            select: { mode: true, status: true, displayPhone: true },
+            take: 1,
           },
         },
-        whatsappAccounts: {
-          select: { mode: true, status: true, displayPhone: true },
-          take: 1,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.auditLog.findMany({
+        include: {
+          tenant: { select: { name: true } },
+          actor: { select: { name: true, email: true } },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        take: 15,
+      }),
+      prisma.message.count(),
+    ]);
 
-    return NextResponse.json({ tenants });
+    const activeTenants = tenants.filter((t) => !t.isSuspended);
+    const estimatedMrrTry = activeTenants.reduce(
+      (sum, t) => sum + (PLAN_PRICES_TRY[t.planTier] ?? 1490),
+      0
+    );
+
+    return NextResponse.json({
+      admin: { name: admin.name, email: admin.email },
+      summary: {
+        totalTenants: tenants.length,
+        activeTenants: activeTenants.length,
+        suspendedTenants: tenants.length - activeTenants.length,
+        totalUsers: tenants.reduce((sum, t) => sum + t._count.memberships, 0),
+        totalAppointments: tenants.reduce((sum, t) => sum + t._count.appointments, 0),
+        totalMessages,
+        estimatedMrrTry,
+      },
+      tenants,
+      recentAuditLogs,
+    });
   } catch (err) {
     return handleApiError(err);
   }

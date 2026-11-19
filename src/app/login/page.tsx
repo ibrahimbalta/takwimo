@@ -46,7 +46,11 @@ export default function LoginPage() {
         setError(data.error ?? "İşlem başarısız oldu. Bilgilerinizi kontrol edin.");
         return;
       }
-      router.push("/dashboard");
+      if (data.user?.isSuperAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch {
       setError("Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.");
     } finally {

@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
         email: user.email,
         role: activeMembership.role,
+        isSuperAdmin: user.isSuperAdmin,
         tenantName: activeMembership.tenant.name,
       },
     });
