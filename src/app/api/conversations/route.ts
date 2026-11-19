@@ -8,26 +8,52 @@ export async function GET(req: NextRequest) {
     const session = await requireAuth();
     const filter = req.nextUrl.searchParams.get("filter") ?? "all";
 
-    const whereClause = {
-      tenantId: session.tenantId,
-      ...(filter === "mine" ? { assignedMembershipId: session.membershipId } : {}),
-      ...(filter === "unassigned" ? { assignedMembershipId: null } : {}),
-    };
+    const isStaff = session.role === "STAFF";
+    const whereClause = isStaff
+      ? {
+          tenantId: session.tenantId,
+          ...(filter === "mine"
+            ? { assignedMembershipId: session.membershipId }
+            : filter === "unassigned"
+            ? { assignedMembershipId: null }
+            : {
+                OR: [
+                  { assignedMembershipId: session.membershipId },
+                  { assignedMembershipId: null },
+                ],
+              }),
+        }
+      : {
+          tenantId: session.tenantId,
+          ...(filter === "mine" ? { assignedMembershipId: session.membershipId } : {}),
+          ...(filter === "unassigned" ? { assignedMembershipId: null } : {}),
+        };
 
-    const conversations = await prisma.conversation.findMany({
-      where: whereClause,
-      include: {
-        contact: true,
-        assignedMembership: { include: { user: { select: { name: true, email: true } } } },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
+    const [conversations, waAccount] = await Promise.all([
+      prisma.conversation.findMany({
+        where: whereClause,
+        include: {
+          contact: true,
+          assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
-      },
-      orderBy: { lastMessageAt: "desc" },
-    });
+        orderBy: { lastMessageAt: "desc" },
+      }),
+      prisma.whatsappAccount.findFirst({
+        where: { tenantId: session.tenantId },
+        select: { mode: true },
+      }),
+    ]);
 
-    return NextResponse.json({ conversations });
+    return NextResponse.json({
+      conversations,
+      role: session.role,
+      currentMembershipId: session.membershipId,
+      integrationMode: waAccount?.mode === "LIVE" ? "LIVE" : "DEMO",
+    });
   } catch (err) {
     return handleApiError(err);
   }

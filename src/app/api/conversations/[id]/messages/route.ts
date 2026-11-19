@@ -27,6 +27,14 @@ export async function GET(
       throw new ApiError(404, "Konuşma bulunamadı.", "NOT_FOUND");
     }
 
+    if (
+      session.role === "STAFF" &&
+      conversation.assignedMembershipId &&
+      conversation.assignedMembershipId !== session.membershipId
+    ) {
+      throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
+    }
+
     if (conversation.unreadCount > 0) {
       await prisma.conversation.update({
         where: { id: conversation.id },
@@ -68,6 +76,14 @@ export async function POST(
 
     if (!conversation) {
       throw new ApiError(404, "Konuşma bulunamadı.", "NOT_FOUND");
+    }
+
+    if (
+      session.role === "STAFF" &&
+      conversation.assignedMembershipId &&
+      conversation.assignedMembershipId !== session.membershipId
+    ) {
+      throw new ApiError(403, "Bu konuşma başka bir ekip üyesine atanmıştır.", "FORBIDDEN");
     }
 
     const parsed = sendMsgSchema.safeParse(await req.json());

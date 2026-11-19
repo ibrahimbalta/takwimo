@@ -56,6 +56,9 @@ export default function InboxPage() {
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [mobileShowBooking, setMobileShowBooking] = useState(false);
+  const [userRole, setUserRole] = useState<string>("OWNER");
+  const [currentMembershipId, setCurrentMembershipId] = useState<string>("");
+  const [integrationMode, setIntegrationMode] = useState<"DEMO" | "LIVE">("DEMO");
 
   // Quick appointment form state
   const [apptTitle, setApptTitle] = useState("Ön Görüşme Randevusu");
@@ -69,6 +72,12 @@ export default function InboxPage() {
     if (res.ok) {
       const data = await res.json();
       setConversations(data.conversations ?? []);
+      if (data.role) setUserRole(data.role);
+      if (data.currentMembershipId) setCurrentMembershipId(data.currentMembershipId);
+      if (data.integrationMode) setIntegrationMode(data.integrationMode);
+      if (data.role === "STAFF" && data.currentMembershipId) {
+        setApptMemberId(data.currentMembershipId);
+      }
       if (!selectedId && data.conversations?.length > 0) {
         setSelectedId(data.conversations[0].id);
       }
@@ -205,13 +214,15 @@ export default function InboxPage() {
           <h1 className="text-xl font-bold text-slate-900">WhatsApp Ortak Gelen Kutusu</h1>
           <p className="text-xs text-slate-500">Tüm ekip aynı WhatsApp numarasını ortak yönetir.</p>
         </div>
-        <button
-          onClick={simulateDemoInbound}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium hover:bg-amber-100 transition-colors self-start"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Demo Gelen Mesaj Simüle Et
-        </button>
+        {integrationMode !== "LIVE" && (
+          <button
+            onClick={simulateDemoInbound}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium hover:bg-amber-100 transition-colors self-start"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Demo Gelen Mesaj Simüle Et
+          </button>
+        )}
       </div>
 
       <PageGuideBanner
@@ -232,11 +243,17 @@ export default function InboxPage() {
           }`}
         >
           <div className="p-3 border-b border-slate-100 flex gap-1">
-            {[
-              { id: "all", label: "Tümü" },
-              { id: "mine", label: "Bana Atanan" },
-              { id: "unassigned", label: "Atanmamış" },
-            ].map((tab) => (
+            {(userRole === "STAFF"
+              ? [
+                  { id: "mine", label: "Bana Atanan" },
+                  { id: "unassigned", label: "Atanmamış" },
+                ]
+              : [
+                  { id: "all", label: "Tümü" },
+                  { id: "mine", label: "Bana Atanan" },
+                  { id: "unassigned", label: "Atanmamış" },
+                ]
+            ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id as "all" | "mine" | "unassigned")}
@@ -487,15 +504,18 @@ export default function InboxPage() {
               <div>
                 <label className="block text-[11px] font-medium text-slate-600 mb-1">Ekip Üyesi</label>
                 <select
-                  value={apptMemberId}
+                  value={userRole === "STAFF" && currentMembershipId ? currentMembershipId : apptMemberId}
+                  disabled={userRole === "STAFF"}
                   onChange={(e) => setApptMemberId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs disabled:bg-slate-100 disabled:text-slate-600"
                 >
-                  {members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.user.name}
-                    </option>
-                  ))}
+                  {members
+                    .filter((m) => userRole !== "STAFF" || !currentMembershipId || m.id === currentMembershipId)
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.user.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 

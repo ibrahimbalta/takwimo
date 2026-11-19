@@ -29,6 +29,14 @@ export async function PATCH(
       throw new ApiError(404, "Randevu bulunamadı.", "NOT_FOUND");
     }
 
+    if (session.role === "STAFF" && existing.assignedMembershipId !== session.membershipId) {
+      throw new ApiError(
+        403,
+        "Yalnızca kendinize atanan randevuları onaylayabilir, erteleyebilir veya iptal edebilirsiniz.",
+        "FORBIDDEN"
+      );
+    }
+
     const parsed = updateAppointmentSchema.safeParse(await req.json());
     if (!parsed.success) {
       throw new ApiError(400, "Geçersiz güncelleme verisi.");
