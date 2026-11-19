@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireRole, ApiError, handleApiError } from "@/lib/tenant-guard";
-import { encryptSecret } from "@/lib/crypto";
+import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import { buildGoogleOAuthUrl, isGoogleOAuthConfigured } from "@/lib/integrations/google-calendar";
 import { recordAuditLog } from "@/lib/audit";
 import { getPlatformConfigMap } from "@/lib/platform-config";
@@ -49,6 +49,7 @@ export async function GET() {
 
     return NextResponse.json({
       role: session.role,
+      currentMembershipId: session.membershipId,
       whatsapp,
       googleConnections,
       googleOAuthConfigured: googleConfigured,
@@ -68,19 +69,109 @@ export async function GET() {
 }
 
 const connectWhatsappSchema = z.object({
-  action: z.enum(["CONNECT_WHATSAPP_LIVE", "SWITCH_DEMO", "CLEAR_DEMO_DATA"]),
+  action: z.enum([
+    "CONNECT_WHATSAPP_LIVE",
+    "SWITCH_DEMO",
+    "CLEAR_DEMO_DATA",
+    "DISCONNECT_WHATSAPP",
+    "DISCONNECT_GOOGLE",
+  ]),
   wabaId: z.string().optional(),
   phoneNumberId: z.string().optional(),
   displayPhone: z.string().optional(),
   accessToken: z.string().optional(),
+  googleConnectionId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireRole(["OWNER", "ADMIN"]);
+    const session = await requireAuth();
     const parsed = connectWhatsappSchema.safeParse(await req.json());
     if (!parsed.success) {
       throw new ApiError(400, "Geçersiz entegrasyon isteği.");
+    }
+
+    // Any member can disconnect their own Google Calendar; OWNER/ADMIN can disconnect any member's
+    if (parsed.data.action === "DISCONNECT_GOOGLE") {
+      const targetId = parsed.data.googleConnectionId;
+      const conn = targetId
+        ? await prisma.googleCalendarConnection.findFirst({
+            where: { id: targetId, tenantId: session.tenantId },
+          })
+        : await prisma.googleCalendarConnection.findFirst({
+            where: { tenantId: session.tenantId, membershipId: session.membershipId },
+          });
+
+      if (!conn) {
+        throw new ApiError(404, "Kaldırılacak Google Takvim bağlantısı bulunamadı.");
+      }
+
+      const isManager = session.role === "OWNER" || session.role === "ADMIN";
+      if (!isManager && conn.membershipId !== session.membershipId) {
+        throw new ApiError(403, "Yalnızca kendi Google Takvim bağlantınızı kaldırabilirsiniz.");
+      }
+
+      await prisma.googleCalendarConnection.delete({ where: { id: conn.id } });
+      await recordAuditLog({
+        tenantId: session.tenantId,
+        actorUserId: session.userId,
+        action: "GOOGLE_CALENDAR_DISCONNECTED",
+        entityType: "GOOGLE_CALENDAR",
+        entityId: conn.membershipId,
+        metadata: { googleEmail: conn.googleEmail },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: `${conn.googleEmail} Google Takvim bağlantısı kaldırıldı ve erişim anahtarları silindi.`,
+      });
+    }
+
+    // All remaining actions require OWNER or ADMIN role
+    await requireRole(["OWNER", "ADMIN"]);
+
+    if (parsed.data.action === "DISCONNECT_WHATSAPP") {
+      const existingWa = await prisma.whatsappAccount.findFirst({
+        where: { tenantId: session.tenantId },
+      });
+
+      if (existingWa?.wabaId && existingWa.encryptedAccessToken) {
+        try {
+          const token = decryptSecret(existingWa.encryptedAccessToken);
+          await fetch(`https://graph.facebook.com/v21.0/${existingWa.wabaId}/subscribed_apps`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          // Best-effort remote unsubscribe; always wipe local credentials
+        }
+      }
+
+      await prisma.whatsappAccount.updateMany({
+        where: { tenantId: session.tenantId },
+        data: {
+          wabaId: null,
+          phoneNumberId: null,
+          encryptedAccessToken: null,
+          displayPhone: "Henüz Bağlı Değil",
+          mode: "DEMO",
+          status: "DISCONNECTED",
+          lastError: null,
+        },
+      });
+
+      await recordAuditLog({
+        tenantId: session.tenantId,
+        actorUserId: session.userId,
+        action: "WHATSAPP_DISCONNECTED",
+        entityType: "WHATSAPP_ACCOUNT",
+        metadata: { previousPhone: existingWa?.displayPhone ?? null },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: "WhatsApp Business bağlantısı kesildi ve erişim anahtarları veritabanından silindi.",
+      });
     }
 
     if (parsed.data.action === "CLEAR_DEMO_DATA") {

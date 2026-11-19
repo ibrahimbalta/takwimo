@@ -9,11 +9,13 @@ import {
   Trash2,
   Sparkles,
   ChevronDown,
+  Unplug,
 } from "lucide-react";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
 
 interface IntegrationsData {
   role?: string;
+  currentMembershipId?: string;
   whatsapp: {
     displayPhone: string;
     mode: "DEMO" | "LIVE";
@@ -23,6 +25,7 @@ interface IntegrationsData {
   } | null;
   googleConnections: Array<{
     id: string;
+    membershipId: string;
     googleEmail: string;
     mode: string;
     status: string;
@@ -59,6 +62,48 @@ export default function IntegrationsPage() {
   const [accessToken, setAccessToken] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [connectingMeta, setConnectingMeta] = useState(false);
+  const [disconnectingWa, setDisconnectingWa] = useState(false);
+  const [disconnectingGoogleId, setDisconnectingGoogleId] = useState<string | null>(null);
+
+  async function handleDisconnectWhatsapp() {
+    if (!window.confirm("WhatsApp Business bağlantısını kesmek ve kayıtlı API anahtarlarını silmek istediğinize emin misiniz?")) {
+      return;
+    }
+    setDisconnectingWa(true);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DISCONNECT_WHATSAPP" }),
+      });
+      const json = await res.json();
+      setFeedback(json.message ?? json.error ?? "WhatsApp bağlantısı kesildi.");
+      await load();
+    } finally {
+      setDisconnectingWa(false);
+    }
+  }
+
+  async function handleDisconnectGoogle(googleConnectionId: string, email: string) {
+    if (!window.confirm(`${email} Google Takvim bağlantısını kaldırmak istediğinize emin misiniz?`)) {
+      return;
+    }
+    setDisconnectingGoogleId(googleConnectionId);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "DISCONNECT_GOOGLE", googleConnectionId }),
+      });
+      const json = await res.json();
+      setFeedback(json.message ?? json.error ?? "Google Takvim bağlantısı kaldırıldı.");
+      await load();
+    } finally {
+      setDisconnectingGoogleId(null);
+    }
+  }
 
   // Stores waba_id / phone_number_id received from Meta Embedded Signup postMessage
   const embeddedMetaRef = useRef<{ wabaId?: string; phoneNumberId?: string }>({});
@@ -302,6 +347,20 @@ export default function IntegrationsPage() {
             </div>
           )}
 
+          {data?.whatsapp?.mode === "LIVE" && (
+            <button
+              type="button"
+              onClick={handleDisconnectWhatsapp}
+              disabled={disconnectingWa}
+              className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+            >
+              <Unplug className="w-3.5 h-3.5" />
+              <span>
+                {disconnectingWa ? "Bağlantı Kesiliyor..." : "WhatsApp Bağlantısını Kes"}
+              </span>
+            </button>
+          )}
+
           {/* Collapsible Advanced Manual Entry */}
           <details className="group pt-2 border-t border-slate-100">
             <summary className="list-none cursor-pointer flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-800 py-1">
@@ -407,21 +466,40 @@ export default function IntegrationsPage() {
 
           <div className="space-y-2 pt-2 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-700">Bağlı Ekip Takvimleri</p>
-            {data?.googleConnections.map((gc) => (
-              <div
-                key={gc.id}
-                className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800">{gc.membership.user.name}</p>
-                  <p className="text-slate-500">{gc.googleEmail}</p>
+            {data?.googleConnections.map((gc) => {
+              const canDisconnect =
+                data.role === "OWNER" ||
+                data.role === "ADMIN" ||
+                gc.membershipId === data.currentMembershipId;
+              return (
+                <div
+                  key={gc.id}
+                  className="p-3 rounded-xl bg-slate-50 flex items-center justify-between gap-2 text-xs"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 truncate">{gc.membership.user.name}</p>
+                    <p className="text-slate-500 truncate">{gc.googleEmail}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-medium">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      {gc.mode}
+                    </span>
+                    {canDisconnect && (
+                      <button
+                        type="button"
+                        disabled={disconnectingGoogleId === gc.id}
+                        onClick={() => handleDisconnectGoogle(gc.id, gc.googleEmail)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <Unplug className="w-3 h-3" />
+                        <span>{disconnectingGoogleId === gc.id ? "..." : "Kaldır"}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-medium">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  {gc.mode}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
