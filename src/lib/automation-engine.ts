@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsappMessage } from "@/lib/integrations/whatsapp";
-import { formatDateTR, formatTimeTR } from "@/lib/utils";
+import { formatDateTR, formatTimeTR, isWithin24Hours } from "@/lib/utils";
 
 type TriggerType = "ON_CREATE" | "BEFORE_START" | "ON_CANCEL" | "ON_RESCHEDULE";
 
@@ -107,10 +107,27 @@ export async function executeNotificationJob(jobId: string): Promise<void> {
     job.appointment.title
   );
 
-  const result = await sendWhatsappMessage({
+  // Check if customer is within Meta's 24-hour free-form messaging window
+  let lastCustomerMsgAt = job.appointment.conversation?.lastCustomerMessageAt ?? null;
+  if (!lastCustomerMsgAt) {
+    const recentConv = await prisma.conversation.findFirst({
+      where: { tenantId: job.tenantId, contactId: job.appointment.contactId },
+      select: { lastCustomerMessageAt: true },
+      orderBy: { lastMessageAt: "desc" },
+    });
+    lastCustomerMsgAt = recentConv?.lastCustomerMessageAt ?? null;
+  }
+  const within24h = isWithin24Hours(lastCustomerMsgAt);
+
+  // If template is not yet Meta-approved (DEMO/PENDING) and customer is within 24h window,
+  // send as free-form TEXT so automated confirmations/cancellations deliver immediately.
+  const preferTextFirst = within24h && job.rule.template.metaStatus !== "APPROVED";
+
+  let usedType: "TEXT" | "TEMPLATE" = preferTextFirst ? "TEXT" : "TEMPLATE";
+  let result = await sendWhatsappMessage({
     tenantId: job.tenantId,
     toPhoneE164: job.appointment.contact.phoneE164,
-    type: "TEMPLATE",
+    type: usedType,
     body: renderedBody,
     templateName: job.rule.template.metaTemplateName,
     templateLanguage: job.rule.template.language,
@@ -120,6 +137,18 @@ export async function executeNotificationJob(jobId: string): Promise<void> {
       job.appointment.title,
     ],
   });
+
+  // Fallback: if Meta returns #132001 (template not found/approved) and customer is within 24h window,
+  // immediately deliver the rendered message as TEXT.
+  if (!result.ok && result.errorCode === "132001" && within24h && usedType === "TEMPLATE") {
+    usedType = "TEXT";
+    result = await sendWhatsappMessage({
+      tenantId: job.tenantId,
+      toPhoneE164: job.appointment.contact.phoneE164,
+      type: "TEXT",
+      body: renderedBody,
+    });
+  }
 
   if (result.ok) {
     await prisma.notificationJob.update({
@@ -138,9 +167,9 @@ export async function executeNotificationJob(jobId: string): Promise<void> {
           conversationId: job.appointment.conversationId,
           waMessageId: result.waMessageId,
           direction: "OUTBOUND",
-          type: "TEMPLATE",
+          type: usedType,
           body: renderedBody,
-          templateName: job.rule.template.metaTemplateName,
+          templateName: usedType === "TEMPLATE" ? job.rule.template.metaTemplateName : null,
           status: "SENT",
           isDemo: result.mode === "DEMO",
         },
