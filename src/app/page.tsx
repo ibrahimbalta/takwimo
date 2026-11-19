@@ -16,20 +16,20 @@ export default async function HomePage() {
       <SiteHeader isLoggedIn={Boolean(session)} activePath="/" />
 
       {/* ABOVE-THE-FOLD VISUAL SPLIT HERO */}
-      <section className="relative bg-gradient-to-b from-emerald-50/50 via-white to-white pt-10 pb-14 sm:pt-14 sm:pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-emerald-800 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+      <section className="relative bg-gradient-to-b from-emerald-50/50 via-white to-white pt-6 pb-12 sm:pt-14 sm:pb-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="lg:col-span-6 space-y-5 sm:space-y-6">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/90 text-emerald-800 text-[11px] sm:text-xs font-semibold leading-snug max-w-full">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>Resmî Meta WhatsApp Cloud API · Google Calendar</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-950 tracking-[-0.03em] leading-[1.08]">
+            <h1 className="text-[28px] sm:text-5xl font-extrabold text-slate-950 tracking-[-0.03em] leading-[1.12] sm:leading-[1.08]">
               WhatsApp&apos;tan gelen her mesajı,{" "}
               <span className="text-emerald-700">çakışmasız randevuya</span> dönüştürün.
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
+            <p className="text-sm sm:text-lg text-slate-600 leading-relaxed">
               <strong className="font-semibold text-slate-900">
                 Tek gelen kutusu. Tek takvim. Tek ekip.
               </strong>{" "}
@@ -38,23 +38,23 @@ export default async function HomePage() {
               oranını düşürün.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-1">
               <Link
                 href={session ? "/dashboard" : "/login"}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-md shadow-emerald-900/10 transition-all"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-md shadow-emerald-900/10 transition-all"
               >
                 <span>{session ? "Panele Devam Et" : "Ücretsiz Hesap Oluştur"}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#canli-demo"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-slate-800 text-sm font-semibold transition-colors"
+                className="inline-flex items-center justify-center px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-slate-800 text-sm font-semibold transition-colors"
               >
                 Kayıt Olmadan Dene
               </a>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 text-xs text-slate-500 font-medium">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-xs text-slate-500 font-medium">
               <span className="inline-flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-600" />
                 Sonsuza dek ₺0 başlangıç

@@ -20,9 +20,9 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 h-15 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         <Link href="/" className="shrink-0">
-          <TakvimoLogo variant="light" />
+          <TakvimoLogo variant="light" size="sm" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-600">
@@ -41,29 +41,29 @@ export function SiteHeader({
           ))}
         </nav>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 shrink-0">
           {isLoggedIn ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-xs transition-colors"
             >
               <span>Panele Git</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             </Link>
           ) : (
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline-flex px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 hover:text-slate-950 transition-colors"
+                className="hidden sm:inline-flex items-center h-10 px-3.5 rounded-xl text-sm font-medium text-slate-700 hover:text-slate-950 whitespace-nowrap transition-colors"
               >
                 Giriş Yap
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold shadow-xs transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-xs transition-colors"
               >
                 <span>Ücretsiz Başla</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               </Link>
             </>
           )}
