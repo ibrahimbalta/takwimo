@@ -175,6 +175,7 @@ export default function IntegrationsPage() {
             body: JSON.stringify({
               code,
               accessToken: fbAccessToken,
+              redirectUri: window.location.origin + window.location.pathname,
               wabaId: embeddedMetaRef.current.wabaId,
               phoneNumberId: embeddedMetaRef.current.phoneNumberId,
             }),

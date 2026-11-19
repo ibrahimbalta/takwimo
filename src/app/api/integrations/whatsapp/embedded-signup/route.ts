@@ -10,6 +10,7 @@ const embeddedSignupSchema = z
   .object({
     code: z.string().min(5).optional(),
     accessToken: z.string().min(10).optional(),
+    redirectUri: z.string().optional(),
     wabaId: z.string().optional(),
     phoneNumberId: z.string().optional(),
   })
@@ -44,24 +45,42 @@ export async function POST(req: NextRequest) {
     // 1. Obtain access token (either directly from FB.login or by exchanging OAuth code)
     let accessToken = parsed.data.accessToken?.trim() ?? "";
     if (!accessToken && parsed.data.code) {
-      const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
-      tokenUrl.searchParams.set("client_id", appId);
-      tokenUrl.searchParams.set("client_secret", appSecret);
-      tokenUrl.searchParams.set("code", parsed.data.code);
+      // Meta JS SDK FB.login code exchange uses redirect_uri="" for User tokens,
+      // omitted redirect_uri for System-User tokens, or page URL in some flows.
+      const redirectCandidates: Array<string | null> = [
+        "",
+        null,
+        ...(parsed.data.redirectUri ? [parsed.data.redirectUri] : []),
+      ];
 
-      const tokenRes = await fetch(tokenUrl.toString());
-      const tokenData = (await tokenRes.json()) as {
-        access_token?: string;
-        error?: { message?: string };
-      };
+      let lastError = "Meta erişim anahtarı alınamadı.";
+      for (const candidate of redirectCandidates) {
+        const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+        tokenUrl.searchParams.set("client_id", appId);
+        tokenUrl.searchParams.set("client_secret", appSecret);
+        tokenUrl.searchParams.set("code", parsed.data.code);
+        if (candidate !== null) {
+          tokenUrl.searchParams.set("redirect_uri", candidate);
+        }
 
-      if (!tokenRes.ok || !tokenData.access_token) {
-        throw new ApiError(
-          400,
-          tokenData.error?.message ?? "Meta erişim anahtarı alınamadı."
-        );
+        const tokenRes = await fetch(tokenUrl.toString());
+        const tokenData = (await tokenRes.json()) as {
+          access_token?: string;
+          error?: { message?: string };
+        };
+
+        if (tokenRes.ok && tokenData.access_token) {
+          accessToken = tokenData.access_token;
+          break;
+        }
+        if (tokenData.error?.message) {
+          lastError = tokenData.error.message;
+        }
       }
-      accessToken = tokenData.access_token;
+
+      if (!accessToken) {
+        throw new ApiError(400, lastError);
+      }
     }
 
     let wabaId = parsed.data.wabaId?.trim() || "";
