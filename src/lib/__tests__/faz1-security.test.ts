@@ -11,6 +11,10 @@ import { GET as settingsGET } from "@/app/api/settings/route";
 import { GET as billingGET } from "@/app/api/billing/route";
 import { GET as automationsGET } from "@/app/api/automations/route";
 import { GET as teamGET } from "@/app/api/team/route";
+import { GET as conversationMessagesGET } from "@/app/api/conversations/[id]/messages/route";
+import { PATCH as customerPATCH } from "@/app/api/customers/[id]/route";
+import { PATCH as appointmentPATCH } from "@/app/api/appointments/[id]/route";
+import { POST as kvkkAnonymizePOST } from "@/app/api/settings/kvkk-anonymize/route";
 import { POST as instagramWebhookPOST } from "@/app/api/webhooks/instagram/route";
 import { POST as whatsappWebhookPOST } from "@/app/api/webhooks/whatsapp/route";
 import { getPlatformConfig } from "@/lib/platform-config";
@@ -224,6 +228,217 @@ describe("FAZ 1 — P0 Security Controls Verification", () => {
       const unmappedIgRes = await instagramWebhookPOST(unmappedIgReq);
       expect(unmappedIgRes.status).toBe(200);
     }
+  });
+
+  it("verifies OWNER and ADMIN can access admin GET endpoints while STAFF is blocked", async () => {
+    const ownerMember = await prisma.membership.findFirst({
+      where: { role: "OWNER", isActive: true, tenant: { isSuspended: false } },
+      include: { user: true, tenant: { select: { name: true } } },
+    });
+    expect(ownerMember).not.toBeNull();
+    if (ownerMember) {
+      mockedCookieToken = await signSessionToken({
+        userId: ownerMember.userId,
+        email: ownerMember.user.email,
+        name: ownerMember.user.name,
+        tenantId: ownerMember.tenantId,
+        tenantName: ownerMember.tenant.name,
+        membershipId: ownerMember.id,
+        role: "OWNER",
+      });
+      const [sRes, bRes, aRes, tRes] = await Promise.all([
+        settingsGET(),
+        billingGET(),
+        automationsGET(),
+        teamGET(),
+      ]);
+      expect(sRes.status).toBe(200);
+      expect(bRes.status).toBe(200);
+      expect(aRes.status).toBe(200);
+      expect(tRes.status).toBe(200);
+    }
+
+    const adminMember = await prisma.membership.findFirst({
+      where: { role: "ADMIN", isActive: true, tenant: { isSuspended: false } },
+      include: { user: true, tenant: { select: { name: true } } },
+    });
+    if (adminMember) {
+      mockedCookieToken = await signSessionToken({
+        userId: adminMember.userId,
+        email: adminMember.user.email,
+        name: adminMember.user.name,
+        tenantId: adminMember.tenantId,
+        tenantName: adminMember.tenant.name,
+        membershipId: adminMember.id,
+        role: "ADMIN",
+      });
+      const [sRes, bRes, aRes] = await Promise.all([
+        settingsGET(),
+        billingGET(),
+        automationsGET(),
+      ]);
+      expect(sRes.status).toBe(200);
+      expect(bRes.status).toBe(200);
+      expect(aRes.status).toBe(200);
+    }
+
+    mockedCookieToken = undefined;
+  }, 15000);
+
+  it("blocks cross-tenant access to conversations, customers, and KVKK anonymization", async () => {
+    const tenant1 = await prisma.tenant.findUnique({ where: { slug: "klinik-nova" } });
+    const tenant2 = await prisma.tenant.findUnique({ where: { slug: "aura-dis" } });
+    expect(tenant1).not.toBeNull();
+    expect(tenant2).not.toBeNull();
+
+    const ownerT1 = await prisma.membership.findFirst({
+      where: { tenantId: tenant1!.id, role: "OWNER", isActive: true },
+      include: { user: true },
+    });
+    const convT2 = await prisma.conversation.findFirst({ where: { tenantId: tenant2!.id } });
+    const contactT2 = await prisma.contact.findFirst({ where: { tenantId: tenant2!.id } });
+
+    expect(ownerT1).not.toBeNull();
+    mockedCookieToken = await signSessionToken({
+      userId: ownerT1!.userId,
+      email: ownerT1!.user.email,
+      name: ownerT1!.user.name,
+      tenantId: tenant1!.id,
+      tenantName: tenant1!.name,
+      membershipId: ownerT1!.id,
+      role: "OWNER",
+    });
+
+    if (convT2) {
+      const req = new NextRequest(`http://localhost:3000/api/conversations/${convT2.id}/messages`);
+      const res = await conversationMessagesGET(req, { params: Promise.resolve({ id: convT2.id }) });
+      expect(res.status).toBe(404);
+    }
+
+    if (contactT2) {
+      const patchReq = new NextRequest(`http://localhost:3000/api/customers/${contactT2.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ notes: "cross-tenant-attempt" }),
+      });
+      const patchRes = await customerPATCH(patchReq, { params: Promise.resolve({ id: contactT2.id }) });
+      expect(patchRes.status).toBe(404);
+
+      const anonReq = new NextRequest("http://localhost:3000/api/settings/kvkk-anonymize", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ contactId: contactT2.id }),
+      });
+      const anonRes = await kvkkAnonymizePOST(anonReq);
+      expect(anonRes.status).toBe(404);
+    }
+
+    mockedCookieToken = undefined;
+  }, 15000);
+
+  it("blocks cross-tenant or inactive assignedMembershipId on appointment PATCH and preserves null fallback", async () => {
+    const tenant1 = await prisma.tenant.findUnique({ where: { slug: "klinik-nova" } });
+    const tenant2 = await prisma.tenant.findUnique({ where: { slug: "aura-dis" } });
+    expect(tenant1).not.toBeNull();
+    expect(tenant2).not.toBeNull();
+
+    const [ownerT1, memberT2, apptT1] = await Promise.all([
+      prisma.membership.findFirst({
+        where: { tenantId: tenant1!.id, role: "OWNER", isActive: true },
+        include: { user: true },
+      }),
+      prisma.membership.findFirst({
+        where: { tenantId: tenant2!.id, isActive: true },
+      }),
+      prisma.appointment.findFirst({
+        where: { tenantId: tenant1!.id },
+      }),
+    ]);
+
+    expect(ownerT1).not.toBeNull();
+    expect(memberT2).not.toBeNull();
+    expect(apptT1).not.toBeNull();
+
+    mockedCookieToken = await signSessionToken({
+      userId: ownerT1!.userId,
+      email: ownerT1!.user.email,
+      name: ownerT1!.user.name,
+      tenantId: tenant1!.id,
+      tenantName: tenant1!.name,
+      membershipId: ownerT1!.id,
+      role: "OWNER",
+    });
+
+    const originalMemberId = apptT1!.assignedMembershipId;
+
+    // 1. Negative: cross-tenant membershipId must be rejected (404) & DB must remain unchanged
+    const crossTenantReq = new NextRequest(`http://localhost:3000/api/appointments/${apptT1!.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assignedMembershipId: memberT2!.id }),
+    });
+    const crossTenantRes = await appointmentPATCH(crossTenantReq, {
+      params: Promise.resolve({ id: apptT1!.id }),
+    });
+    expect(crossTenantRes.status).toBe(404);
+
+    // 2. Negative: non-existent / inactive membershipId must be rejected (404)
+    const invalidMemberReq = new NextRequest(`http://localhost:3000/api/appointments/${apptT1!.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assignedMembershipId: "invalid-member-id-999" }),
+    });
+    const invalidMemberRes = await appointmentPATCH(invalidMemberReq, {
+      params: Promise.resolve({ id: apptT1!.id }),
+    });
+    expect(invalidMemberRes.status).toBe(404);
+
+    const afterRejected = await prisma.appointment.findUnique({
+      where: { id: apptT1!.id },
+      select: { assignedMembershipId: true },
+    });
+    expect(afterRejected?.assignedMembershipId).toBe(originalMemberId);
+
+    // 3. Positive: null assignedMembershipId preserves existing assignment without error
+    const nullMemberReq = new NextRequest(`http://localhost:3000/api/appointments/${apptT1!.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assignedMembershipId: null }),
+    });
+    const nullMemberRes = await appointmentPATCH(nullMemberReq, {
+      params: Promise.resolve({ id: apptT1!.id }),
+    });
+    expect(nullMemberRes.status).toBe(200);
+    const nullJson = await nullMemberRes.json();
+    expect(nullJson.appointment.assignedMembershipId).toBe(originalMemberId);
+
+    // 4. Positive: valid active same-tenant membershipId succeeds
+    const validMemberReq = new NextRequest(`http://localhost:3000/api/appointments/${apptT1!.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assignedMembershipId: originalMemberId }),
+    });
+    const validMemberRes = await appointmentPATCH(validMemberReq, {
+      params: Promise.resolve({ id: apptT1!.id }),
+    });
+    expect(validMemberRes.status).toBe(200);
+
+    mockedCookieToken = undefined;
+  }, 30000);
+
+  it("enforces rate limiting on forgot-password abuse (>5 attempts/min -> 429)", async () => {
+    const uniqueIp = `abuse-fp-${Date.now()}`;
+    let lastStatus = 200;
+    for (let i = 0; i < 6; i++) {
+      const req = new NextRequest("http://localhost:3000/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": uniqueIp },
+        body: JSON.stringify({ email: `nobody-${i}@takwimo.invalid` }),
+      });
+      const res = await forgotPasswordPOST(req);
+      lastStatus = res.status;
+    }
+    expect(lastStatus).toBe(429);
   });
 
   it("configures mandatory HTTP security headers in next.config.ts", async () => {

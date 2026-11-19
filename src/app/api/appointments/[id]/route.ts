@@ -13,7 +13,7 @@ const updateAppointmentSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "RESCHEDULED", "COMPLETED"]).optional(),
   startAt: z.string().datetime().optional(),
   endAt: z.string().datetime().optional(),
-  assignedMembershipId: z.string().optional(),
+  assignedMembershipId: z.string().nullable().optional(),
   notes: z.string().optional(),
 });
 
@@ -49,6 +49,34 @@ export async function PATCH(
     const nextEnd = parsed.data.endAt ? new Date(parsed.data.endAt) : existing.endAt;
     const nextMemberId = parsed.data.assignedMembershipId ?? existing.assignedMembershipId;
     const nextStatus = parsed.data.status ?? existing.status;
+
+    // Security: when reassigning an appointment, enforce tenant ownership & active status
+    if (parsed.data.assignedMembershipId) {
+      if (session.role === "STAFF" && nextMemberId !== session.membershipId) {
+        throw new ApiError(
+          403,
+          "Ekip üyeleri randevuyu başka bir ekip üyesine devredemez.",
+          "FORBIDDEN"
+        );
+      }
+
+      const targetMember = await prisma.membership.findFirst({
+        where: {
+          id: nextMemberId,
+          tenantId: session.tenantId,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      if (!targetMember) {
+        throw new ApiError(
+          404,
+          "Seçilen ekip üyesi bu işletmede bulunamadı veya pasif durumda.",
+          "MEMBER_NOT_FOUND"
+        );
+      }
+    }
 
     if (nextEnd <= nextStart) {
       throw new ApiError(400, "Bitiş saati başlangıç saatinden sonra olmalıdır.");
