@@ -8,5 +8,17 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (!session) {
     redirect("/login");
   }
-  return <PanelShell>{children}</PanelShell>;
+  return (
+    <PanelShell
+      initialSession={{
+        name: session.name,
+        email: session.email,
+        role: session.role,
+        isSuperAdmin: session.isSuperAdmin,
+        tenantName: session.tenantName,
+      }}
+    >
+      {children}
+    </PanelShell>
+  );
 }

@@ -122,7 +122,10 @@ export default function StandaloneAdminCrmPage() {
   }, [router, selectedTenant]);
 
   useEffect(() => {
-    load();
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -624,39 +627,28 @@ export default function StandaloneAdminCrmPage() {
       </div>
 
       {/* Mobile App Bottom Navigation Dock (< lg) */}
-      <nav className="lg:hidden fixed bottom-3 inset-x-3 bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl h-16 px-2 flex items-center justify-around z-40 shadow-2xl">
+      <nav
+        aria-label="Süper admin mobil menü"
+        className="lg:hidden fixed bottom-2.5 inset-x-2.5 bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl h-16 px-1.5 flex items-center justify-around z-40 shadow-2xl"
+      >
         <button
           type="button"
           onClick={() => {
             setTab("tenants");
             setStatusFilter("ALL");
           }}
-          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium ${
-            tab === "tenants" && statusFilter !== "EXPIRING" ? "text-emerald-400 bg-white/10" : "text-slate-400"
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold ${
+            tab === "tenants" ? "text-emerald-400 bg-white/10" : "text-slate-400"
           }`}
         >
           <Building2 className="w-5 h-5" />
-          <span>İşletmeler</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setTab("tenants");
-            setStatusFilter("EXPIRING");
-          }}
-          className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium relative ${
-            tab === "tenants" && statusFilter === "EXPIRING" ? "text-amber-400 bg-white/10" : "text-slate-400"
-          }`}
-        >
-          <AlertTriangle className="w-5 h-5" />
-          <span>Uyarılar ({expiringTenants.length})</span>
+          <span>İşletme</span>
         </button>
 
         <button
           type="button"
           onClick={() => setTab("activity")}
-          className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold ${
             tab === "activity" ? "text-emerald-400 bg-white/10" : "text-slate-400"
           }`}
         >
@@ -667,7 +659,7 @@ export default function StandaloneAdminCrmPage() {
         <button
           type="button"
           onClick={() => setTab("settings")}
-          className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium ${
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold ${
             tab === "settings" ? "text-emerald-400 bg-white/10" : "text-slate-400"
           }`}
         >
@@ -677,8 +669,20 @@ export default function StandaloneAdminCrmPage() {
 
         <button
           type="button"
+          onClick={() => setTab("cms")}
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold ${
+            tab === "cms" ? "text-emerald-400 bg-white/10" : "text-slate-400"
+          }`}
+        >
+          <FileEdit className="w-5 h-5" />
+          <span>CMS</span>
+        </button>
+
+        <button
+          type="button"
+          aria-label="Çıkış Yap"
           onClick={handleLogout}
-          className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-medium text-rose-400"
+          className="flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold text-rose-400"
         >
           <LogOut className="w-5 h-5" />
           <span>Çıkış</span>
@@ -687,8 +691,18 @@ export default function StandaloneAdminCrmPage() {
 
       {/* CRM Tenant Detail & Subscription Date Editor Drawer */}
       {selectedTenant && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end">
-          <CustomScroll variant="light" className="w-full max-w-md bg-white h-full shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="İşletme detayları"
+          onClick={() => setSelectedTenant(null)}
+          className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white h-full shadow-2xl"
+          >
+          <CustomScroll variant="light" className="w-full h-full">
             <div className="p-5 sm:p-6 flex flex-col space-y-5">
             <div className="flex items-start justify-between pb-4 border-b border-slate-100">
               <div>
@@ -820,6 +834,7 @@ export default function StandaloneAdminCrmPage() {
             </div>
             </div>
           </CustomScroll>
+          </div>
         </div>
       )}
 
