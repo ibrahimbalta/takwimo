@@ -12,7 +12,8 @@ const forgotSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") ?? "local";
+    const rawForwarded = req.headers.get("x-forwarded-for");
+    const ip = rawForwarded ? rawForwarded.split(",")[0].trim() : "local";
     const rl = await checkRateLimitAsync(`forgot:${ip}`, 5, 60_000);
     if (!rl.allowed) {
       return NextResponse.json(
@@ -29,14 +30,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const GENERIC_SUCCESS_MESSAGE =
+      "Eğer bu e-posta adresi sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi.";
+
     const email = parsed.data.email.toLowerCase().trim();
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // Always return generic success message to prevent email enumeration
+    // Always return identical generic success message to prevent email enumeration
     if (!user) {
       return NextResponse.json({
         ok: true,
-        message: "Eğer bu e-posta adresi sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi.",
+        message: GENERIC_SUCCESS_MESSAGE,
       });
     }
 
@@ -51,17 +55,16 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const resetLink = `${appUrl.replace(/\/$/, "")}/reset-password?token=${raw}`;
-    const emailResult = await sendPasswordResetEmail({
+    await sendPasswordResetEmail({
       to: user.email,
       name: user.name,
       resetLink,
     });
 
+    // Security: NEVER return reset tokens or demo reset links in HTTP responses
     return NextResponse.json({
       ok: true,
-      message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
-      // In DEMO mode (no RESEND_API_KEY), expose preview link so local/demo testers can complete the flow
-      ...(emailResult.mode === "DEMO" ? { demoResetLink: resetLink } : {}),
+      message: GENERIC_SUCCESS_MESSAGE,
     });
   } catch (err) {
     return handleApiError(err);

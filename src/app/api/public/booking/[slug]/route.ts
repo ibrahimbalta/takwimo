@@ -24,6 +24,16 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
+  const rawForwarded = req.headers.get("x-forwarded-for");
+  const ip = rawForwarded ? rawForwarded.split(",")[0].trim() : "local";
+  const rl = await checkRateLimitAsync(`pubbook-get:${ip}`, 30, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin." },
+      { status: 429 }
+    );
+  }
+
   const { slug } = await context.params;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
@@ -115,13 +125,24 @@ export async function GET(
 
 const publicBookSchema = z.object({
   serviceId: z.string().optional(),
-  customTitle: z.string().optional(),
+  customTitle: z.string().max(120).optional(),
   membershipId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
-  contactName: z.string().min(2, "Ad Soyad en az 2 karakter olmalıdır."),
-  contactPhone: z.string().min(10, "Geçerli bir WhatsApp telefon numarası girin."),
+  contactName: z.string().trim().min(2, "Ad Soyad en az 2 karakter olmalıdır.").max(100),
+  contactPhone: z
+    .string()
+    .refine(
+      (val) => {
+        const digits = val.replace(/\D/g, "");
+        return digits.length >= 10 && digits.length <= 15;
+      },
+      { message: "Geçerli bir WhatsApp telefon numarası girin (en az 10 rakam)." }
+    ),
   notes: z.string().max(400).optional(),
+  kvkkAccepted: z.literal(true, {
+    message: "Randevu oluşturmak için KVKK aydınlatma metnini onaylamanız gerekir.",
+  }),
 });
 
 function normalizeTrPhone(raw: string): string {
@@ -129,7 +150,7 @@ function normalizeTrPhone(raw: string): string {
   if (digits.startsWith("90") && digits.length === 12) return `+${digits}`;
   if (digits.startsWith("0") && digits.length === 11) return `+9${digits}`;
   if (digits.length === 10 && digits.startsWith("5")) return `+90${digits}`;
-  return raw.startsWith("+") ? raw : `+${digits}`;
+  return `+${digits}`;
 }
 
 /**
@@ -141,7 +162,8 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
-  const ip = req.headers.get("x-forwarded-for") ?? "local";
+  const rawForwarded = req.headers.get("x-forwarded-for");
+  const ip = rawForwarded ? rawForwarded.split(",")[0].trim() : "local";
   const rl = await checkRateLimitAsync(`pubbook:${ip}`, 10, 60_000);
   if (!rl.allowed) {
     return NextResponse.json({ error: "Çok fazla randevu denemesi. Lütfen biraz bekleyin." }, { status: 429 });
@@ -195,9 +217,10 @@ export async function POST(
 
   const phoneE164 = normalizeTrPhone(parsed.data.contactPhone);
   const now = new Date();
+  // Security: do NOT overwrite an existing CRM contact's name from an unauthenticated booking request
   const contact = await prisma.contact.upsert({
     where: { tenantId_phoneE164: { tenantId: tenant.id, phoneE164 } },
-    update: { name: parsed.data.contactName.trim() },
+    update: { kvkkConsentAt: now },
     create: {
       tenantId: tenant.id,
       phoneE164,

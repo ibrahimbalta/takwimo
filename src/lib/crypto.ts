@@ -82,3 +82,12 @@ export function generateSecureToken(): { raw: string; hash: string } {
 export function hashToken(raw: string): string {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
+
+/**
+ * Constant-time string comparison (hashes both inputs first so lengths are always equal).
+ */
+export function timingSafeCompare(a: string, b: string): boolean {
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}

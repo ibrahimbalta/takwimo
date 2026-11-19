@@ -12,6 +12,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface IntegrationsData {
   role?: string;
@@ -67,11 +68,15 @@ export default function IntegrationsPage() {
   const [connectingMeta, setConnectingMeta] = useState(false);
   const [disconnectingWa, setDisconnectingWa] = useState(false);
   const [disconnectingGoogleId, setDisconnectingGoogleId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    | { type: "DISCONNECT_WA" }
+    | { type: "DISCONNECT_GOOGLE"; id: string; email: string }
+    | { type: "CLEAR_DEMO" }
+    | null
+  >(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  async function handleDisconnectWhatsapp() {
-    if (!window.confirm("WhatsApp Business bağlantısını kesmek ve kayıtlı API anahtarlarını silmek istediğinize emin misiniz?")) {
-      return;
-    }
+  async function executeDisconnectWhatsapp() {
     setDisconnectingWa(true);
     setFeedback(null);
     try {
@@ -88,10 +93,11 @@ export default function IntegrationsPage() {
     }
   }
 
-  async function handleDisconnectGoogle(googleConnectionId: string, email: string) {
-    if (!window.confirm(`${email} Google Takvim bağlantısını kaldırmak istediğinize emin misiniz?`)) {
-      return;
-    }
+  function handleDisconnectWhatsapp() {
+    setConfirmAction({ type: "DISCONNECT_WA" });
+  }
+
+  async function executeDisconnectGoogle(googleConnectionId: string) {
     setDisconnectingGoogleId(googleConnectionId);
     setFeedback(null);
     try {
@@ -106,6 +112,10 @@ export default function IntegrationsPage() {
     } finally {
       setDisconnectingGoogleId(null);
     }
+  }
+
+  function handleDisconnectGoogle(googleConnectionId: string, email: string) {
+    setConfirmAction({ type: "DISCONNECT_GOOGLE", id: googleConnectionId, email });
   }
 
   // Stores waba_id / phone_number_id received from Meta Embedded Signup postMessage
@@ -266,7 +276,8 @@ export default function IntegrationsPage() {
         </div>
         {data?.role !== "STAFF" && (
           <button
-            onClick={clearDemoData}
+            type="button"
+            onClick={() => setConfirmAction({ type: "CLEAR_DEMO" })}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold hover:bg-rose-100 self-start"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -509,6 +520,46 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={
+          confirmAction?.type === "DISCONNECT_WA"
+            ? "WhatsApp Business Bağlantısını Kes"
+            : confirmAction?.type === "DISCONNECT_GOOGLE"
+            ? "Google Takvim Bağlantısını Kaldır"
+            : "Demo Verilerini Temizle"
+        }
+        description={
+          confirmAction?.type === "DISCONNECT_WA"
+            ? "WhatsApp Business bağlantısı kesilecek ve kayıtlı erişim anahtarları silinecektir. Otomatik WhatsApp mesajları yeni bağlantı yapılana kadar duracaktır."
+            : confirmAction?.type === "DISCONNECT_GOOGLE"
+            ? `${confirmAction.email} hesabının Google Takvim senkronizasyonu kaldırılacaktır. Devam etmek istiyor musunuz?`
+            : "İşletmenizdeki tüm demo konuşmalar, demo mesajlar ve demo randevular kalıcı olarak silinecektir. Gerçek (CANLI) kayıtlarınız etkilenmez."
+        }
+        confirmLabel={
+          confirmAction?.type === "CLEAR_DEMO" ? "Evet, Demo Verilerini Sil" : "Evet, Bağlantıyı Kes"
+        }
+        variant="danger"
+        loading={confirmLoading}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          if (!confirmAction) return;
+          setConfirmLoading(true);
+          try {
+            if (confirmAction.type === "DISCONNECT_WA") {
+              await executeDisconnectWhatsapp();
+            } else if (confirmAction.type === "DISCONNECT_GOOGLE") {
+              await executeDisconnectGoogle(confirmAction.id);
+            } else if (confirmAction.type === "CLEAR_DEMO") {
+              await clearDemoData();
+            }
+          } finally {
+            setConfirmLoading(false);
+            setConfirmAction(null);
+          }
+        }}
+      />
     </div>
   );
 }

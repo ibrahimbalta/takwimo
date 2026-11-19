@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyMetaSignature } from "@/lib/crypto";
+import { verifyMetaSignature, timingSafeCompare } from "@/lib/crypto";
 import { getPlatformConfig } from "@/lib/platform-config";
 
 /**
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
   const expectedToken = await getPlatformConfig("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
 
-  if (mode === "subscribe" && expectedToken && token === expectedToken && challenge) {
+  if (mode === "subscribe" && expectedToken && token && timingSafeCompare(token, expectedToken) && challenge) {
     return new NextResponse(challenge, { status: 200 });
   }
   return NextResponse.json({ error: "Instagram webhook doğrulaması başarısız." }, { status: 403 });
@@ -44,14 +44,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Geçersiz imza." }, { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody) as InstagramWebhookPayload;
-  const primaryTenant = await prisma.tenant.findFirst({
-    where: { isSuspended: false },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!primaryTenant) return NextResponse.json({ received: true });
+  let payload: InstagramWebhookPayload;
+  try {
+    payload = JSON.parse(rawBody) as InstagramWebhookPayload;
+  } catch {
+    return NextResponse.json({ error: "Geçersiz JSON verisi." }, { status: 400 });
+  }
 
   for (const entry of payload.entry ?? []) {
+    const igAccountId = entry.id?.trim();
+    if (!igAccountId) continue;
+
+    // Strictly resolve owning tenant by Instagram Business Account ID (fail closed to prevent cross-tenant leak)
+    const mapping = await prisma.platformSetting.findUnique({
+      where: { key: `INSTAGRAM_ACCOUNT_TENANT_${igAccountId}` },
+    });
+    const tenantId = mapping?.value?.trim();
+    if (!tenantId) {
+      console.warn(`[IG WEBHOOK] Unmapped Instagram account ID ignored for tenant isolation.`);
+      continue;
+    }
+
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: tenantId, isSuspended: false },
+      select: { id: true },
+    });
+    if (!tenant) continue;
+
     for (const ev of entry.messaging ?? []) {
       const senderId = ev.sender?.id;
       const mid = ev.message?.mid;
@@ -64,10 +83,10 @@ export async function POST(req: NextRequest) {
       const igHandle = `ig:${senderId}`;
       const now = new Date();
       const contact = await prisma.contact.upsert({
-        where: { tenantId_phoneE164: { tenantId: primaryTenant.id, phoneE164: igHandle } },
+        where: { tenantId_phoneE164: { tenantId: tenant.id, phoneE164: igHandle } },
         update: {},
         create: {
-          tenantId: primaryTenant.id,
+          tenantId: tenant.id,
           phoneE164: igHandle,
           name: `Instagram #${senderId.slice(-4)}`,
           tags: "Instagram DM",
@@ -75,12 +94,12 @@ export async function POST(req: NextRequest) {
       });
 
       let conv = await prisma.conversation.findFirst({
-        where: { tenantId: primaryTenant.id, contactId: contact.id, channel: "INSTAGRAM" },
+        where: { tenantId: tenant.id, contactId: contact.id, channel: "INSTAGRAM" },
       });
       if (!conv) {
         conv = await prisma.conversation.create({
           data: {
-            tenantId: primaryTenant.id,
+            tenantId: tenant.id,
             contactId: contact.id,
             channel: "INSTAGRAM",
             status: "OPEN",
@@ -103,7 +122,7 @@ export async function POST(req: NextRequest) {
 
       await prisma.message.create({
         data: {
-          tenantId: primaryTenant.id,
+          tenantId: tenant.id,
           conversationId: conv.id,
           waMessageId: mid,
           direction: "INBOUND",

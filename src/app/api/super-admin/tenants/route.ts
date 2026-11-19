@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin, ApiError, handleApiError } from "@/lib/tenant-guard";
 import { PLAN_PRICES_TRY, type PlanTierId } from "@/lib/plans";
+import { recordAuditLog } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -83,7 +84,7 @@ const patchTenantSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
-    await requireSuperAdmin();
+    const admin = await requireSuperAdmin();
     const parsed = patchTenantSchema.safeParse(await req.json());
     if (!parsed.success) {
       throw new ApiError(400, "Geçersiz işletme güncelleme verisi.");
@@ -108,6 +109,25 @@ export async function PATCH(req: NextRequest) {
                 : null,
             }
           : {}),
+      },
+    });
+
+    await recordAuditLog({
+      tenantId: updated.id,
+      actorUserId: admin.userId,
+      action:
+        parsed.data.isSuspended !== undefined
+          ? parsed.data.isSuspended
+            ? "SUPER_ADMIN_TENANT_SUSPENDED"
+            : "SUPER_ADMIN_TENANT_ACTIVATED"
+          : "SUPER_ADMIN_TENANT_UPDATED",
+      entityType: "TENANT",
+      entityId: updated.id,
+      metadata: {
+        planTier: parsed.data.planTier,
+        isSuspended: parsed.data.isSuspended,
+        subscriptionStartsAt: parsed.data.subscriptionStartsAt,
+        subscriptionEndsAt: parsed.data.subscriptionEndsAt,
       },
     });
 

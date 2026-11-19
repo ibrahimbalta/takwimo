@@ -11,6 +11,7 @@ import {
   Trash2,
   Sparkles,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface ServiceItem {
   id: string;
@@ -86,10 +87,18 @@ export default function ServicesPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!window.confirm("Bu hizmeti silmek istediğinize emin misiniz?")) return;
-    await fetch(`/api/services/${id}`, { method: "DELETE" });
-    await reload();
+  const [pendingDelete, setPendingDelete] = useState<ServiceItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function executeDelete(id: string) {
+    setDeleting(true);
+    try {
+      await fetch(`/api/services/${id}`, { method: "DELETE" });
+      await reload();
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
+    }
   }
 
   const bookingUrl =
@@ -263,7 +272,8 @@ export default function ServicesPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleDelete(s.id)}
+                    aria-label={`${s.name} hizmetini sil`}
+                    onClick={() => setPendingDelete(s)}
                     className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -274,6 +284,19 @@ export default function ServicesPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Hizmeti Sil"
+        description={`"${pendingDelete?.name ?? "Bu hizmet"}" hizmet kataloğunuzdan ve online randevu sayfanızdan kalıcı olarak silinecektir.`}
+        confirmLabel="Evet, Hizmeti Sil"
+        variant="danger"
+        loading={deleting}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) return executeDelete(pendingDelete.id);
+        }}
+      />
     </div>
   );
 }

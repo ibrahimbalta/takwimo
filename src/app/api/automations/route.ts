@@ -6,7 +6,7 @@ import { recordAuditLog } from "@/lib/audit";
 
 export async function GET() {
   try {
-    const session = await requireAuth();
+    const session = await requireRole(["OWNER", "ADMIN"]);
     const [rules, templates, jobs] = await Promise.all([
       prisma.automationRule.findMany({
         where: { tenantId: session.tenantId },

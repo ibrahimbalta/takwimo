@@ -10,19 +10,23 @@ import { getPlanById } from "@/lib/plans";
 export async function GET() {
   try {
     const session = await requireAuth();
+    const isAdmin = session.role === "OWNER" || session.role === "ADMIN";
     const [memberships, invitations] = await Promise.all([
       prisma.membership.findMany({
-        where: { tenantId: session.tenantId },
+        where: { tenantId: session.tenantId, ...(isAdmin ? {} : { isActive: true }) },
         include: {
           user: { select: { id: true, name: true, email: true } },
           googleCalendar: { select: { googleEmail: true, mode: true, status: true } },
         },
         orderBy: { createdAt: "asc" },
       }),
-      prisma.invitation.findMany({
-        where: { tenantId: session.tenantId, acceptedAt: null },
-        orderBy: { createdAt: "desc" },
-      }),
+      isAdmin
+        ? prisma.invitation.findMany({
+            where: { tenantId: session.tenantId, acceptedAt: null },
+            select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
     return NextResponse.json({ memberships, invitations });

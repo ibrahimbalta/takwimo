@@ -29,13 +29,27 @@ export async function requireAuth(options?: RequireAuthOptions): Promise<Session
   }
 
   if (!session.isSuperAdmin) {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: session.tenantId },
-      select: { isSuspended: true, planTier: true, subscriptionEndsAt: true },
-    });
+    const [tenant, membership] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: session.tenantId },
+        select: { isSuspended: true, planTier: true, subscriptionEndsAt: true },
+      }),
+      prisma.membership.findUnique({
+        where: { id: session.membershipId },
+        select: { isActive: true, role: true, tenantId: true },
+      }),
+    ]);
 
     if (!tenant) {
       throw new ApiError(401, "İşletme hesabı bulunamadı.", "TENANT_NOT_FOUND");
+    }
+
+    if (!membership || !membership.isActive || membership.tenantId !== session.tenantId) {
+      throw new ApiError(
+        403,
+        "Ekip üyeliğiniz pasif hale getirilmiştir. Lütfen işletme yöneticisi ile iletişime geçin.",
+        "MEMBERSHIP_INACTIVE"
+      );
     }
 
     if (tenant.isSuspended) {
@@ -59,6 +73,12 @@ export async function requireAuth(options?: RequireAuthOptions): Promise<Session
         "SUBSCRIPTION_EXPIRED"
       );
     }
+
+    // Always reflect live DB role so role demotions take effect immediately
+    return {
+      ...session,
+      role: membership.role as TenantRole,
+    };
   }
 
   return session;

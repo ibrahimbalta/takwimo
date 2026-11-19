@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyMetaSignature } from "@/lib/crypto";
+import { verifyMetaSignature, timingSafeCompare } from "@/lib/crypto";
 import { getPlatformConfig } from "@/lib/platform-config";
 import { transcribeWhatsappAudio, maybeReplyWithAiReceptionist } from "@/lib/ai-assistant";
 import { sendWhatsappMessage } from "@/lib/integrations/whatsapp";
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
 
   const expectedToken = await getPlatformConfig("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
-  if (mode === "subscribe" && expectedToken && token === expectedToken && challenge) {
+  if (mode === "subscribe" && expectedToken && token && timingSafeCompare(token, expectedToken) && challenge) {
     return new NextResponse(challenge, { status: 200 });
   }
   return NextResponse.json({ error: "Webhook doğrulaması başarısız." }, { status: 403 });
@@ -71,7 +71,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Geçersiz webhook imzası." }, { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody) as MetaWebhookPayload;
+  let payload: MetaWebhookPayload;
+  try {
+    payload = JSON.parse(rawBody) as MetaWebhookPayload;
+  } catch {
+    return NextResponse.json({ error: "Geçersiz JSON verisi." }, { status: 400 });
+  }
 
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
@@ -206,23 +211,26 @@ export async function POST(req: NextRequest) {
         });
 
         // Handle interactive appointment button replies (CONFIRM_APPT_... / CANCEL_APPT_...)
+        // Security: enforce contactId ownership so a customer can only act on their own appointment
         const btnId = msg.interactive?.button_reply?.id;
         if (btnId?.startsWith("CONFIRM_APPT_")) {
           const apptId = btnId.replace("CONFIRM_APPT_", "");
-          await prisma.appointment.updateMany({
-            where: { id: apptId, tenantId: waAccount.tenantId },
+          const updated = await prisma.appointment.updateMany({
+            where: { id: apptId, tenantId: waAccount.tenantId, contactId: contact.id },
             data: { status: "CONFIRMED", confirmedByCustomerAt: now },
           });
-          await sendWhatsappMessage({
-            tenantId: waAccount.tenantId,
-            toPhoneE164: phoneE164,
-            type: "TEXT",
-            body: "Teşekkür ederiz! Randevu katılım onayınız alındı. Görüşmek üzere! ✅",
-          });
+          if (updated.count > 0) {
+            await sendWhatsappMessage({
+              tenantId: waAccount.tenantId,
+              toPhoneE164: phoneE164,
+              type: "TEXT",
+              body: "Teşekkür ederiz! Randevu katılım onayınız alındı. Görüşmek üzere! ✅",
+            });
+          }
         } else if (btnId?.startsWith("CANCEL_APPT_")) {
           const apptId = btnId.replace("CANCEL_APPT_", "");
           const updated = await prisma.appointment.updateMany({
-            where: { id: apptId, tenantId: waAccount.tenantId },
+            where: { id: apptId, tenantId: waAccount.tenantId, contactId: contact.id },
             data: { status: "CANCELLED" },
           });
           if (updated.count > 0) {

@@ -59,6 +59,7 @@ export default function PublicOnlineBookingPage() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<{
@@ -135,6 +136,7 @@ export default function PublicOnlineBookingPage() {
           contactName,
           contactPhone,
           notes,
+          kvkkAccepted,
         }),
       });
       const json = await res.json();
@@ -398,15 +400,44 @@ export default function PublicOnlineBookingPage() {
               />
             </div>
 
+            <label
+              htmlFor="public-booking-kvkk"
+              className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 cursor-pointer text-xs text-slate-600"
+            >
+              <input
+                id="public-booking-kvkk"
+                type="checkbox"
+                required
+                checked={kvkkAccepted}
+                onChange={(e) => setKvkkAccepted(e.target.checked)}
+                className="mt-0.5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
+              />
+              <span>
+                Randevu ve WhatsApp bilgilendirme mesajları kapsamında kişisel verilerimin işlenmesine ilişkin{" "}
+                <a
+                  href="/kvkk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-emerald-700 underline"
+                >
+                  KVKK Aydınlatma Metni
+                </a>
+                &apos;ni okudum ve onaylıyorum.
+              </span>
+            </label>
+
             {error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+              >
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={submitting || !selectedTime}
+              disabled={submitting || !selectedTime || !kvkkAccepted}
               className="w-full py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
             >
               <CalendarCheck2 className="w-4 h-4" />

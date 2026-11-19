@@ -10,13 +10,11 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [demoLink, setDemoLink] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setDemoLink(null);
     setLoading(true);
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -30,9 +28,6 @@ export default function ForgotPasswordPage() {
         return;
       }
       setSuccess(data.message ?? "Şifre sıfırlama bağlantısı gönderildi.");
-      if (data.demoResetLink) {
-        setDemoLink(data.demoResetLink);
-      }
     } catch {
       setError("Sunucuya bağlanılamadı.");
     } finally {
@@ -71,24 +66,13 @@ export default function ForgotPasswordPage() {
           )}
 
           {success && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{success}</span>
-              </div>
-              {demoLink && (
-                <div className="pt-1 border-t border-emerald-200/80">
-                  <p className="text-[11px] text-emerald-700 mb-1">
-                    Demo/Yerel Mod Sıfırlama Linki:
-                  </p>
-                  <Link
-                    href={demoLink.replace(/^https?:\/\/[^/]+/, "")}
-                    className="underline font-semibold break-all text-emerald-900"
-                  >
-                    Yeni Şifre Belirleme Ekranına Git →
-                  </Link>
-                </div>
-              )}
+            <div
+              role="status"
+              aria-live="polite"
+              className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{success}</span>
             </div>
           )}
 

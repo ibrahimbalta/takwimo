@@ -94,6 +94,15 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
+  // Enforce frontend RBAC route protection: redirect STAFF away from OWNER/ADMIN-only pages
+  useEffect(() => {
+    if (!session || session.role !== "STAFF") return;
+    const adminOnlyPrefixes = ["/services", "/team", "/automations", "/settings", "/billing"];
+    if (adminOnlyPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+      router.replace("/dashboard");
+    }
+  }, [session, pathname, router]);
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");

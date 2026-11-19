@@ -5,6 +5,7 @@ import { ShieldCheck, Save, UserX, FileText, Building2 } from "lucide-react";
 import { formatDateTR, formatTimeTR } from "@/lib/utils";
 import { HelpBubble } from "@/components/HelpBubble";
 import { CustomScroll } from "@/components/CustomScroll";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface SettingsData {
   tenant: {
@@ -110,16 +111,28 @@ export default function SettingsPage() {
     }
   }
 
+  const [pendingAnonymize, setPendingAnonymize] = useState<{ id: string; name: string } | null>(null);
+  const [anonymizing, setAnonymizing] = useState(false);
+
   async function anonymizeContact(contactId: string) {
+    setAnonymizing(true);
     setFeedback(null);
-    const res = await fetch("/api/settings/kvkk-anonymize", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId }),
-    });
-    if (res.ok) {
-      setFeedback("Müşteri kişisel verileri KVKK kapsamında anonimleştirildi.");
-      await load();
+    try {
+      const res = await fetch("/api/settings/kvkk-anonymize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId }),
+      });
+      if (res.ok) {
+        setFeedback("Müşteri kişisel verileri KVKK kapsamında anonimleştirildi.");
+        await load();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback(json?.error ?? "Anonimleştirme işlemi tamamlanamadı.");
+      }
+    } finally {
+      setAnonymizing(false);
+      setPendingAnonymize(null);
     }
   }
 
@@ -316,7 +329,8 @@ export default function SettingsPage() {
                     <p className="text-slate-500">{c.phoneE164}</p>
                   </div>
                   <button
-                    onClick={() => anonymizeContact(c.id)}
+                    type="button"
+                    onClick={() => setPendingAnonymize({ id: c.id, name: c.name })}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-medium"
                   >
                     <UserX className="w-3.5 h-3.5" />
@@ -350,6 +364,19 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingAnonymize)}
+        title="Müşteri Verilerini Kalıcı Olarak Anonimleştir"
+        description={`${pendingAnonymize?.name ?? "Bu müşteri"} adlı kişinin adı, telefon numarası ve tüm mesaj içerikleri KVKK kapsamında geri döndürülemez şekilde anonimleştirilecek. Devam etmek istiyor musunuz?`}
+        confirmLabel="Evet, Kalıcı Anonimleştir"
+        variant="danger"
+        loading={anonymizing}
+        onCancel={() => setPendingAnonymize(null)}
+        onConfirm={() => {
+          if (pendingAnonymize) return anonymizeContact(pendingAnonymize.id);
+        }}
+      />
     </div>
   );
 }

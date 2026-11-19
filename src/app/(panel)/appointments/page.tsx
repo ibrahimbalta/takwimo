@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, XCircle, Clock, CalendarClock } from "lucide-react";
 import { formatDateTR, formatPhoneDisplay, formatTimeTR } from "@/lib/utils";
 import { HelpBubble, PageGuideBanner } from "@/components/HelpBubble";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface AppointmentRow {
   id: string;
@@ -20,6 +21,8 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<AppointmentRow | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/appointments?status=${statusFilter}`);
@@ -156,7 +159,8 @@ export default function AppointmentsPage() {
                       +1 Saat Ertele
                     </button>
                     <button
-                      onClick={() => updateStatus(appt.id, "CANCELLED")}
+                      type="button"
+                      onClick={() => setPendingCancel(appt)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-medium hover:bg-rose-100"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -174,6 +178,26 @@ export default function AppointmentsPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingCancel)}
+        title="Randevuyu İptal Et"
+        description={`${pendingCancel?.contact.name ?? "Müşteri"} için ${pendingCancel ? `${formatDateTR(pendingCancel.startAt)} ${formatTimeTR(pendingCancel.startAt)}` : ""} tarihli "${pendingCancel?.title ?? ""}" randevusu iptal edilecek, Google Takvimden kaldırılacak ve müşteriye WhatsApp iptal bildirimi gönderilecektir.`}
+        confirmLabel="Evet, Randevuyu İptal Et"
+        variant="danger"
+        loading={cancelling}
+        onCancel={() => setPendingCancel(null)}
+        onConfirm={async () => {
+          if (!pendingCancel) return;
+          setCancelling(true);
+          try {
+            await updateStatus(pendingCancel.id, "CANCELLED");
+          } finally {
+            setCancelling(false);
+            setPendingCancel(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, handleApiError } from "@/lib/tenant-guard";
+import { requireRole, handleApiError } from "@/lib/tenant-guard";
 import { PLANS, getTenantUsageAndQuota } from "@/lib/plans";
 import { getPlatformConfigMap } from "@/lib/platform-config";
 
 export async function GET() {
   try {
-    const session = await requireAuth({ allowExpiredSubscription: true });
+    const session = await requireRole(["OWNER", "ADMIN"], { allowExpiredSubscription: true });
     const [tenant, transactions] = await Promise.all([
       prisma.tenant.findUnique({
         where: { id: session.tenantId },
