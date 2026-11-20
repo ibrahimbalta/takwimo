@@ -120,23 +120,23 @@ export default function ServicesPage() {
 
       {/* Shareable Online Booking Link Card */}
       {bookingUrl && (
-        <div className="bg-slate-950 text-white rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-slate-950 text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="space-y-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-              <Sparkles className="w-3.5 h-3.5" />
-              Instagram Biyografisi & Google Haritalar İçin 7/24 Online Randevu Linkiniz
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              7/24 Online Randevu Linkiniz
             </span>
-            <p className="text-sm font-mono text-slate-200 truncate">{bookingUrl}</p>
+            <p className="text-xs sm:text-sm font-mono text-slate-200 truncate">{bookingUrl}</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard.writeText(bookingUrl);
+                navigator.clipboard.writeText(bookingUrl).catch(() => {});
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1800);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold whitespace-nowrap"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Kopyalandı" : "Linki Kopyala"}
@@ -145,7 +145,7 @@ export default function ServicesPage() {
               href={bookingUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold whitespace-nowrap"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Önizle

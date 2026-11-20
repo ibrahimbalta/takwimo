@@ -106,16 +106,16 @@ export function PageGuideBanner({
   if (hidden) return null;
 
   return (
-    <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 sm:p-5 flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+    <div className="bg-emerald-50/75 border border-emerald-200/90 rounded-2xl p-3.5 sm:p-5 flex items-start justify-between gap-3">
+      <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
           <Lightbulb className="w-4 h-4" />
         </div>
-        <div className="space-y-1.5">
-          <h2 className="text-sm font-bold text-emerald-950">{title}</h2>
+        <div className="space-y-1 min-w-0">
+          <h2 className="text-xs sm:text-sm font-bold text-emerald-950">{title}</h2>
           <p className="text-xs sm:text-sm text-emerald-900/90 leading-relaxed">{description}</p>
           {steps && steps.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="hidden sm:flex flex-wrap gap-2 pt-1">
               {steps.map((s, idx) => (
                 <span
                   key={s}

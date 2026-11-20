@@ -330,11 +330,13 @@ export function PanelShell({
         )}
       >
         {/* Floating Glass Topbar */}
-        <header className="mx-3 mt-3 md:mx-6 md:mt-3 h-14 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-3.5 sm:px-4 md:px-6 flex items-center justify-between gap-2 sticky top-3 z-20 shadow-xs">
-          <div className="flex items-center gap-2.5 min-w-0 md:hidden">
+        <header className="mx-3 mt-3 md:mx-6 md:mt-3 h-14 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 sticky top-3 z-20 shadow-xs">
+          <div className="flex items-center gap-2 min-w-0 md:hidden">
             <TakvimoLogo variant="light" size="sm" />
-            <span className="text-slate-300 text-xs">·</span>
-            <span className="text-xs font-bold text-slate-800 truncate">{activePageLabel}</span>
+            <span className="hidden xs:inline text-slate-300 text-xs">·</span>
+            <span className="hidden sm:inline text-xs font-bold text-slate-800 truncate">
+              {activePageLabel}
+            </span>
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs min-w-0">
@@ -350,11 +352,10 @@ export function PanelShell({
               type="button"
               onClick={() => setHelpOpen(true)}
               aria-label="Nasıl kullanılır yardımını aç"
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <HelpCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Nasıl Kullanılır?</span>
-              <span className="sm:hidden">Yardım</span>
             </button>
 
             {integrationMode === "DEMO" ? (

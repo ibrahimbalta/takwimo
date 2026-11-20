@@ -156,30 +156,32 @@ export default function AutomationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Otomatik Mesajlar, 7/24 AI Asistan & Google Yorum
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+            Otomatik Mesajlar &amp; AI Asistan
           </h1>
-          <p className="text-sm text-slate-500">
-            Şablon metinlerini düzenleyin, çoklu hatırlatma ekleyin, 7/24 AI Resepsiyonist ve 5
-            Yıldız Google Yorum motorunu yönetin.
+          <p className="text-xs sm:text-sm text-slate-500">
+            Şablon metinlerini düzenleyin, hatırlatma ekleyin, 7/24 AI Resepsiyonist ve Google Yorum
+            motorunu yönetin.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex flex-wrap items-center gap-2 self-start">
           <button
+            type="button"
             onClick={addTwoHourReminder}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
-            <span>+ 2 Saat Önce Hatırlatma</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ 2 Saat Hatırlatma</span>
           </button>
           <button
+            type="button"
             onClick={runQueueNow}
             disabled={processing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
           >
-            <Play className="w-4 h-4 text-emerald-600" />
-            <span>{processing ? "Çalıştırılıyor..." : "Bekleyen Kuyruğu İşle"}</span>
+            <Play className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{processing ? "Çalıştırılıyor..." : "Kuyruğu İşle"}</span>
           </button>
         </div>
       </div>
