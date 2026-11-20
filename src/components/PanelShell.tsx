@@ -20,6 +20,7 @@ import {
   X,
   AlertTriangle,
   HelpCircle,
+  Bell,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -92,6 +93,7 @@ export function PanelShell({
   const [staffTitle, setStaffTitle] = useState<string>("Ekip Üyesi");
   const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"DEMO" | "LIVE">("DEMO");
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -137,12 +139,13 @@ export function PanelShell({
         setStaffTitle(data.tenant?.staffTitle || "Ekip Üyesi");
         setSubscriptionEndsAt(data.tenant?.subscriptionEndsAt ?? null);
         setIntegrationMode(data.integrationMode === "LIVE" ? "LIVE" : "DEMO");
+        setUnreadCount(typeof data.unreadConversationsCount === "number" ? data.unreadConversationsCount : 0);
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, pathname]);
 
   // Enforce frontend RBAC route protection: redirect STAFF away from OWNER/ADMIN-only pages
   useEffect(() => {
@@ -190,18 +193,18 @@ export function PanelShell({
   const subAlert = getSubscriptionAlert(subscriptionEndsAt);
 
   return (
-    <div className="min-h-screen bg-[#F3F6F5] flex flex-col md:flex-row">
-      {/* Desktop Floating Obsidian Rail Sidebar (Collapsible) */}
+    <div className="min-h-screen bg-[#F4F7F6] flex flex-col md:flex-row">
+      {/* Desktop Floating Forest-Emerald Sidebar (Collapsible) */}
       <aside
         aria-label="Ana menü"
         className={cn(
-          "hidden md:flex md:flex-col md:fixed md:inset-y-3 md:left-3 bg-slate-950 text-slate-300 rounded-3xl border border-slate-800/90 shadow-2xl shadow-slate-950/20 z-30 overflow-hidden transition-[width] duration-200 ease-out",
+          "hidden md:flex md:flex-col md:fixed md:inset-y-3 md:left-3 bg-[#0B2E26] text-emerald-100/80 rounded-3xl border border-[#14463A] shadow-2xl shadow-[#0B2E26]/20 z-30 overflow-hidden transition-[width] duration-200 ease-out",
           collapsed ? "md:w-[82px]" : "md:w-[268px]"
         )}
       >
         <div
           className={cn(
-            "h-16 flex items-center border-b border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950 shrink-0",
+            "h-16 flex items-center border-b border-white/10 bg-gradient-to-br from-[#0F3A30] to-[#0B2E26] shrink-0",
             collapsed ? "justify-center px-2" : "justify-between px-4"
           )}
         >
@@ -211,21 +214,21 @@ export function PanelShell({
               onClick={toggleSidebarCollapse}
               title="Menüyü Genişlet"
               aria-label="Menüyü Genişlet"
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 text-emerald-300 flex items-center justify-center transition-colors"
             >
               <PanelLeftOpen className="w-4 h-4" />
             </button>
           ) : (
             <>
               <div className="min-w-0">
-                <TakvimoLogo variant="dark" size="sm" subtitle={session?.tenantName ?? "Yükleniyor..."} />
+                <TakvimoLogo variant="dark" size="sm" subtitle={session?.tenantName ?? "CRM & Randevu Yönetimi"} />
               </div>
               <button
                 type="button"
                 onClick={toggleSidebarCollapse}
                 title="Menüyü Daralt"
                 aria-label="Menüyü Daralt"
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                className="p-1.5 rounded-xl text-emerald-200/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
               >
                 <PanelLeftClose className="w-4 h-4" />
               </button>
@@ -241,13 +244,14 @@ export function PanelShell({
               return (
                 <div key={group.id} className="space-y-1">
                   {!collapsed && (
-                    <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300/50">
                       {group.label}
                     </p>
                   )}
                   {items.map((item) => {
                     const Icon = item.icon;
                     const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const showBadge = item.href === "/inbox" && unreadCount > 0;
                     return (
                       <Link
                         key={item.href}
@@ -256,23 +260,31 @@ export function PanelShell({
                         aria-current={active ? "page" : undefined}
                         className={cn(
                           "group flex items-center rounded-2xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
-                          collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5",
+                          collapsed ? "justify-center p-2.5 relative" : "gap-3 px-3 py-2.5",
                           active
-                            ? "bg-white/10 text-white shadow-inner border border-white/10"
-                            : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                            ? "bg-[#06B26B] text-white shadow-sm"
+                            : "text-emerald-100/75 hover:bg-white/8 hover:text-white"
                         )}
                       >
                         <span
                           className={cn(
                             "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all",
                             active
-                              ? `bg-gradient-to-br ${item.glow} text-slate-950 shadow-sm`
-                              : "bg-slate-900 text-slate-400 group-hover:text-white"
+                              ? "bg-white/20 text-white"
+                              : "bg-white/6 text-emerald-300/80 group-hover:text-white group-hover:bg-white/12"
                           )}
                         >
                           <Icon className="w-4 h-4" />
                         </span>
-                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                        {showBadge && !collapsed && (
+                          <span className="px-1.5 py-0.5 min-w-[20px] text-center rounded-full text-[10px] font-bold bg-rose-500 text-white">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                        {showBadge && collapsed && (
+                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B2E26]" />
+                        )}
                       </Link>
                     );
                   })}
@@ -282,26 +294,26 @@ export function PanelShell({
           </div>
         </CustomScroll>
 
-        <div className="p-2.5 border-t border-slate-800/80 bg-slate-900/50 shrink-0">
+        <div className="p-2.5 border-t border-white/10 bg-[#08241E] shrink-0">
           {collapsed ? (
             <button
               type="button"
               onClick={handleLogout}
               title="Çıkış Yap"
               aria-label="Çıkış Yap"
-              className="w-full py-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-800 flex items-center justify-center transition-colors"
+              className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/10 text-emerald-200/70 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center transition-colors"
             >
               <LogOut className="w-4 h-4" />
             </button>
           ) : (
-            <div className="px-3 py-2.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+            <div className="px-3 py-2.5 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 text-xs font-extrabold flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#06B26B] text-white text-xs font-extrabold flex items-center justify-center shrink-0 shadow-xs">
                   {session?.name?.slice(0, 1).toUpperCase() ?? "T"}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{session?.name ?? "..."}</p>
-                  <p className="text-[11px] text-emerald-400 font-medium truncate">
+                  <p className="text-[11px] text-emerald-300 font-medium truncate">
                     {session?.role === "STAFF"
                       ? staffTitle
                       : ROLE_LABELS[session?.role ?? ""] ?? session?.role ?? "Ekip Üyesi"}
@@ -313,7 +325,7 @@ export function PanelShell({
                 onClick={handleLogout}
                 title="Çıkış Yap"
                 aria-label="Çıkış Yap"
-                className="p-1.5 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+                className="p-1.5 text-emerald-200/70 hover:text-rose-300 rounded-xl hover:bg-white/10 transition-colors shrink-0"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -329,49 +341,68 @@ export function PanelShell({
           collapsed ? "md:pl-[98px]" : "md:pl-[284px]"
         )}
       >
-        {/* Floating Glass Topbar */}
-        <header className="mx-3 mt-3 md:mx-6 md:mt-3 h-14 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 sticky top-3 z-20 shadow-xs">
+        {/* Crisp White Topbar with Emerald Accent Line */}
+        <header className="sticky top-0 md:top-3 md:mx-6 md:mt-3 md:rounded-2xl bg-white/95 backdrop-blur-xl border-b-2 border-b-[#06B26B] md:border md:border-slate-200/80 md:border-b-2 md:border-b-[#06B26B] h-16 md:h-14 px-3.5 sm:px-5 flex items-center justify-between gap-2 z-20 shadow-xs">
           <div className="flex items-center gap-2 min-w-0 md:hidden">
-            <TakvimoLogo variant="light" size="sm" />
-            <span className="hidden xs:inline text-slate-300 text-xs">·</span>
-            <span className="hidden sm:inline text-xs font-bold text-slate-800 truncate">
-              {activePageLabel}
-            </span>
+            <TakvimoLogo
+              variant="light"
+              size="sm"
+              subtitle={session?.tenantName ?? "CRM & Randevu Yönetimi"}
+            />
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs min-w-0">
-            <span className="font-semibold text-slate-800 truncate">
+            <span className="font-bold text-slate-900 truncate">
               {session?.tenantName ?? "TAKWİMO"}
             </span>
             <span className="text-slate-300">·</span>
-            <span className="text-slate-500 truncate">{activePageLabel}</span>
+            <span className="text-emerald-700 font-semibold truncate">{activePageLabel}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setHelpOpen(true)}
               aria-label="Nasıl kullanılır yardımını aç"
-              className="inline-flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+              title="Nasıl Kullanılır?"
+              className="inline-flex items-center justify-center gap-1.5 w-9 h-9 md:w-auto md:h-8 md:px-3 rounded-full text-xs font-semibold bg-white text-emerald-700 border border-slate-200/90 hover:bg-emerald-50 hover:border-emerald-200 transition-colors shadow-2xs"
             >
-              <HelpCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Nasıl Kullanılır?</span>
+              <HelpCircle className="w-4 h-4 text-[#06B26B]" />
+              <span className="hidden md:inline">Nasıl Kullanılır?</span>
             </button>
 
             {integrationMode === "DEMO" ? (
               <Link
                 href="/integrations"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/90 hover:bg-amber-100 transition-colors"
               >
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                <span>DEMO</span>
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>Demo</span>
               </Link>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                CANLI
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+                <span className="w-2 h-2 rounded-full bg-[#06B26B] animate-pulse" />
+                <span>Canlı</span>
               </span>
             )}
+
+            <Link
+              href="/inbox"
+              aria-label={
+                unreadCount > 0
+                  ? `${unreadCount} okunmamış WhatsApp mesajı`
+                  : "WhatsApp mesajları"
+              }
+              title="WhatsApp Mesajları"
+              className="relative inline-flex items-center justify-center w-9 h-9 rounded-full bg-white text-emerald-700 border border-slate-200/90 hover:bg-emerald-50 hover:border-emerald-200 transition-colors shadow-2xs"
+            >
+              <Bell className="w-4 h-4 text-[#06B26B]" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-xs ring-2 ring-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
           </div>
         </header>
 
@@ -472,42 +503,59 @@ export function PanelShell({
         <main className="flex-1 p-3 sm:p-4 md:p-6 max-w-7xl w-full mx-auto min-w-0">{children}</main>
       </div>
 
-      {/* Mobile Floating Obsidian Dock — 4 core modules + Menu (>=44px touch targets) */}
+      {/* Mobile Floating Forest-Emerald Dock — 4 core modules + Menu (>=44px touch targets) */}
       <nav
         aria-label="Mobil hızlı navigasyon"
-        className="md:hidden fixed bottom-2.5 inset-x-2.5 bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl h-16 px-1.5 flex items-center justify-around z-40 shadow-2xl shadow-slate-950/30"
+        className="md:hidden fixed bottom-2.5 inset-x-2.5 bg-[#0B2E26]/98 backdrop-blur-xl border border-[#14463A] rounded-2xl h-[66px] px-1.5 grid grid-cols-5 items-center z-40 shadow-2xl shadow-[#0B2E26]/35"
       >
-        {MOBILE_PRIMARY.map((item) => {
+        {MOBILE_PRIMARY.map((item, idx) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const showUnreadDot = item.href === "/inbox" && unreadCount > 0;
           return (
-            <Link
+            <div
               key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold transition-colors",
-                active ? "text-emerald-400 bg-white/10" : "text-slate-400 active:bg-white/5"
+                "flex items-center justify-center h-11",
+                idx > 0 && "border-l border-white/10"
               )}
             >
-              <Icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </Link>
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-0.5 w-[92%] h-[50px] rounded-xl text-[11px] font-semibold transition-all",
+                  active
+                    ? "bg-[#06B26B] text-white shadow-sm"
+                    : "text-emerald-100/80 active:bg-white/10"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="leading-none">{item.label}</span>
+                {showUnreadDot && (
+                  <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0B2E26]" />
+                )}
+              </Link>
+            </div>
           );
         })}
-        <button
-          type="button"
-          aria-label="Tüm menüleri aç"
-          aria-expanded={mobileMenuOpen}
-          onClick={() => setMobileMenuOpen(true)}
-          className={cn(
-            "flex flex-col items-center justify-center gap-0.5 min-w-[54px] min-h-[44px] px-2 py-1.5 rounded-xl text-[10.5px] font-semibold transition-colors",
-            mobileMenuOpen ? "text-emerald-400 bg-white/10" : "text-slate-400 active:bg-white/5"
-          )}
-        >
-          <Menu className="w-5 h-5" />
-          <span>Menü</span>
-        </button>
+        <div className="flex items-center justify-center h-11 border-l border-white/10">
+          <button
+            type="button"
+            aria-label="Tüm menüleri aç"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 w-[92%] h-[50px] rounded-xl text-[11px] font-semibold transition-all",
+              mobileMenuOpen
+                ? "bg-[#06B26B] text-white shadow-sm"
+                : "text-emerald-100/80 active:bg-white/10"
+            )}
+          >
+            <Menu className="w-5 h-5" />
+            <span className="leading-none">Menü</span>
+          </button>
+        </div>
       </nav>
 
       {/* Mobile Secondary Menu Drawer */}
@@ -516,19 +564,19 @@ export function PanelShell({
           role="dialog"
           aria-modal="true"
           aria-label="Tüm menüler"
-          className="md:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex justify-end"
+          className="md:hidden fixed inset-0 z-50 bg-[#071F19]/65 backdrop-blur-xs flex justify-end"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="w-[84vw] max-w-[300px] bg-slate-950 text-slate-200 h-full p-4 flex flex-col shadow-2xl border-l border-slate-800"
+            className="w-[84vw] max-w-[300px] bg-[#0B2E26] text-emerald-50 h-full p-4 flex flex-col shadow-2xl border-l border-[#14463A]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
               <div className="min-w-0">
                 <p className="font-bold text-sm text-white truncate">
                   {session?.tenantName ?? "TAKWİMO"}
                 </p>
-                <p className="text-[11px] text-emerald-400 truncate">
+                <p className="text-[11px] text-emerald-300 truncate">
                   {session?.name ?? "..."} ·{" "}
                   {session?.role === "STAFF"
                     ? staffTitle
@@ -539,7 +587,7 @@ export function PanelShell({
                 type="button"
                 aria-label="Menüyü kapat"
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-800 shrink-0"
+                className="p-2 rounded-xl text-emerald-200/70 hover:bg-white/10 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -552,13 +600,14 @@ export function PanelShell({
                   if (items.length === 0) return null;
                   return (
                     <div key={group.id} className="space-y-1">
-                      <p className="px-3 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <p className="px-3 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300/50">
                         {group.label}
                       </p>
                       {items.map((item) => {
                         const Icon = item.icon;
                         const active =
                           pathname === item.href || pathname.startsWith(`${item.href}/`);
+                        const showBadge = item.href === "/inbox" && unreadCount > 0;
                         return (
                           <Link
                             key={item.href}
@@ -568,12 +617,17 @@ export function PanelShell({
                             className={cn(
                               "flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-medium transition-colors",
                               active
-                                ? "bg-white/10 text-emerald-400 border border-white/10"
-                                : "text-slate-300 hover:bg-white/5"
+                                ? "bg-[#06B26B] text-white shadow-xs"
+                                : "text-emerald-100/80 hover:bg-white/8"
                             )}
                           >
                             <Icon className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{item.label}</span>
+                            <span className="truncate flex-1">{item.label}</span>
+                            {showBadge && (
+                              <span className="px-1.5 py-0.5 min-w-[20px] text-center rounded-full text-[10px] font-bold bg-rose-500 text-white">
+                                {unreadCount > 99 ? "99+" : unreadCount}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
@@ -586,7 +640,7 @@ export function PanelShell({
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-[44px] rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-sm font-semibold mt-2"
+              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-[44px] rounded-xl bg-rose-500/15 text-rose-300 border border-rose-500/30 text-sm font-semibold mt-2"
             >
               <LogOut className="w-4 h-4" />
               <span>Çıkış Yap</span>
