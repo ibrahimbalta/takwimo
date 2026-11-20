@@ -137,10 +137,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">İşletme Bilgileri & KVKK Ayarları</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-lg sm:text-2xl font-bold text-slate-900">
+          <span className="sm:hidden">Ayarlar &amp; KVKK</span>
+          <span className="hidden sm:inline">İşletme Bilgileri &amp; KVKK Ayarları</span>
+        </h1>
+        <p className="hidden sm:block text-sm text-slate-500 mt-0.5">
           İşletme profiliniz, sektörünüz, ekip üyesi unvanı, çalışma saatleri ve KVKK veri güvenliği.
         </p>
       </div>
@@ -151,10 +154,10 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <form
           onSubmit={saveSettings}
-          className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4"
+          className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-6 space-y-4"
         >
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-emerald-600" />

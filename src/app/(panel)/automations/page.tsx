@@ -154,34 +154,35 @@ export default function AutomationsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Otomatik Mesajlar &amp; AI Asistan
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+            <span className="sm:hidden">Otomatik Mesajlar</span>
+            <span className="hidden sm:inline">Otomatik Mesajlar &amp; AI Asistan</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
+          <p className="hidden sm:block text-sm text-slate-500 mt-0.5">
             Şablon metinlerini düzenleyin, hatırlatma ekleyin, 7/24 AI Resepsiyonist ve Google Yorum
             motorunu yönetin.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
           <button
             type="button"
             onClick={addTwoHourReminder}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 hover:bg-emerald-100 whitespace-nowrap transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ 2 Saat Hatırlatma</span>
+            <Plus className="w-3.5 h-3.5 shrink-0" />
+            <span>+ 2s Hatırlatma</span>
           </button>
           <button
             type="button"
             onClick={runQueueNow}
             disabled={processing}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 whitespace-nowrap transition-colors"
           >
-            <Play className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{processing ? "Çalıştırılıyor..." : "Kuyruğu İşle"}</span>
+            <Play className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>{processing ? "Çalışıyor..." : "Kuyruğu İşle"}</span>
           </button>
         </div>
       </div>
@@ -201,7 +202,7 @@ export default function AutomationsPage() {
       {/* 7/24 AI Receptionist & 5-Star Google Review Booster */}
       <form
         onSubmit={saveSmartAutomations}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-white rounded-2xl border border-slate-200 p-5"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5"
       >
         <div className="space-y-3">
           <div className="flex items-center gap-2">

@@ -106,7 +106,7 @@ export function PageGuideBanner({
   if (hidden) return null;
 
   return (
-    <div className="bg-emerald-50/75 border border-emerald-200/90 rounded-2xl p-3.5 sm:p-5 flex items-start justify-between gap-3">
+    <div className="hidden md:flex bg-emerald-50/75 border border-emerald-200/90 rounded-2xl p-4 sm:p-5 items-start justify-between gap-3">
       <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
           <Lightbulb className="w-4 h-4" />
