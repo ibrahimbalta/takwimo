@@ -25,6 +25,7 @@ import {
   Users,
   Phone,
   UserCheck,
+  SlidersHorizontal,
 } from "lucide-react";
 import { formatDateTR, formatPhoneDisplay, formatTimeTR } from "@/lib/utils";
 import { CustomScroll } from "@/components/CustomScroll";
@@ -163,6 +164,7 @@ export default function CustomersCrmPage() {
   const [tagFilter, setTagFilter] = useState("");
   const [memberFilter, setMemberFilter] = useState("ALL");
   const [sort, setSort] = useState("recent");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -540,35 +542,31 @@ export default function CustomersCrmPage() {
     }
   }
 
+  const activeFilterCount =
+    (tagFilter ? 1 : 0) +
+    (userRole !== "STAFF" && memberFilter !== "ALL" ? 1 : 0) +
+    (sort !== "recent" ? 1 : 0) +
+    (pageSize !== 20 ? 1 : 0);
+
   return (
-    <div className="space-y-4 min-w-0">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-3 sm:space-y-4 min-w-0">
+      {/* Compact Header — Title + Actions on one clean row */}
+      <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
-            Müşteri Yönetimi (CRM)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+            <span className="sm:hidden">Müşteriler</span>
+            <span className="hidden sm:inline">Müşteri Yönetimi (CRM)</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500">
+          <p className="hidden sm:block text-xs sm:text-sm text-slate-500 mt-0.5">
             Merkezi müşteri profilleri, segmentler, kronolojik aktivite geçmişi ve KVKK onam takibi.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setCreateError(null);
-              setCreateOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Yeni Müşteri</span>
-          </button>
-
-          <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 text-xs font-semibold cursor-pointer transition-colors">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <label className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 text-xs font-semibold cursor-pointer transition-colors">
             <Upload className="w-3.5 h-3.5 text-emerald-700" />
-            <span>CSV İçe Aktar</span>
+            <span className="hidden sm:inline">CSV İçe Aktar</span>
+            <span className="sm:hidden">CSV</span>
             <input
               type="file"
               accept=".csv,.txt"
@@ -577,15 +575,28 @@ export default function CustomersCrmPage() {
               aria-label="CSV müşteri dosyası yükle"
             />
           </label>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreateError(null);
+              setCreateOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span className="hidden sm:inline">Yeni Müşteri</span>
+            <span className="sm:hidden">Yeni</span>
+          </button>
         </div>
       </div>
 
-      {/* Top Mode Switcher: CRM vs Bekleme Listesi */}
-      <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+      {/* Top Mode Switcher: CRM vs Bekleme Listesi — full-width 2-col on mobile */}
+      <div className="grid grid-cols-2 sm:inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/80">
         <button
           type="button"
           onClick={() => setActiveTab("customers")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-all ${
             activeTab === "customers"
               ? "bg-white text-emerald-700 shadow-2xs"
               : "text-slate-600 hover:text-slate-900"
@@ -597,7 +608,7 @@ export default function CustomersCrmPage() {
         <button
           type="button"
           onClick={() => setActiveTab("waitlist")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-all ${
             activeTab === "waitlist"
               ? "bg-white text-emerald-700 shadow-2xs"
               : "text-slate-600 hover:text-slate-900"
@@ -631,43 +642,49 @@ export default function CustomersCrmPage() {
       )}
 
       {activeTab === "customers" ? (
-        <div className="space-y-4">
-          {/* Segments Horizontal Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
-            {SEGMENTS.map((seg) => (
+        <div className="space-y-3">
+          {/* Compact Search + Collapsible Filters Toolbar */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-2.5 sm:p-3 space-y-2.5 lg:space-y-0 lg:flex lg:items-center lg:gap-2.5 shadow-2xs">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="search"
+                  aria-label="Müşteri adı, telefon, etiket veya not ara"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Ad, telefon, etiket veya not ara..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+
               <button
-                key={seg.id}
                 type="button"
-                onClick={() => {
-                  setSegment(seg.id);
-                  setPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-colors ${
-                  segment === seg.id
-                    ? "bg-emerald-700 text-white border-emerald-700 shadow-2xs"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-expanded={filtersOpen}
+                className={`lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors shrink-0 ${
+                  filtersOpen || activeFilterCount > 0
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : "bg-white border-slate-200 text-slate-700"
                 }`}
               >
-                {seg.label}
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>Filtre</span>
+                {activeFilterCount > 0 && (
+                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
-
-          {/* Search & Filters Toolbar */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-3 flex flex-col lg:flex-row gap-2.5">
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="search"
-                aria-label="Müşteri adı, telefon, etiket veya not ara"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ad, telefon, etiket veya not ara..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs focus:outline-none focus:border-emerald-600"
-              />
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div
+              className={`${
+                filtersOpen
+                  ? "grid grid-cols-2 gap-2 pt-2 border-t border-slate-100"
+                  : "hidden"
+              } lg:flex lg:items-center lg:gap-2 lg:pt-0 lg:border-t-0`}
+            >
               <select
                 aria-label="Etiket filtresi"
                 value={tagFilter}
@@ -675,7 +692,7 @@ export default function CustomersCrmPage() {
                   setTagFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                className="w-full lg:w-auto px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
               >
                 <option value="">Tüm Etiketler</option>
                 {availableTags.map((t) => (
@@ -693,7 +710,7 @@ export default function CustomersCrmPage() {
                     setMemberFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                  className="w-full lg:w-auto px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
                 >
                   <option value="ALL">Tüm Personel</option>
                   {members.map((m) => (
@@ -711,7 +728,7 @@ export default function CustomersCrmPage() {
                   setSort(e.target.value);
                   setPage(1);
                 }}
-                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                className="w-full lg:w-auto px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
               >
                 <option value="recent">En Güncel</option>
                 <option value="name_asc">Ad (A → Z)</option>
@@ -727,13 +744,34 @@ export default function CustomersCrmPage() {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                className="w-full lg:w-auto px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
               >
                 <option value={10}>10 / sayfa</option>
                 <option value={20}>20 / sayfa</option>
                 <option value={50}>50 / sayfa</option>
               </select>
             </div>
+          </div>
+
+          {/* Segments Horizontal Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            {SEGMENTS.map((seg) => (
+              <button
+                key={seg.id}
+                type="button"
+                onClick={() => {
+                  setSegment(seg.id);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
+                  segment === seg.id
+                    ? "bg-emerald-700 text-white border-emerald-700 shadow-2xs"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                }`}
+              >
+                {seg.label}
+              </button>
+            ))}
           </div>
 
           {/* Master-Detail Workspace */}
