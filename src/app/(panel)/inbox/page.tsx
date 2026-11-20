@@ -632,15 +632,15 @@ export default function InboxPage() {
 
       {/* Main Unified Workspace — full viewport height between topbar and mobile dock so composer & messages are never clipped */}
       <div
-        className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 lg:h-[calc(100vh-11rem)] lg:min-h-[540px] ${
+        className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 lg:h-[calc(100vh-8.75rem)] lg:min-h-[540px] ${
           mobileView === "list"
-            ? "h-[calc(100dvh-13rem)] sm:h-[calc(100dvh-12.5rem)]"
-            : "h-[calc(100dvh-9.75rem)]"
+            ? "h-[calc(100dvh-13.5rem)] sm:h-[calc(100dvh-12.75rem)]"
+            : "h-[calc(100dvh-10.25rem)]"
         }`}
       >
         {/* COLUMN 1: Conversation List */}
         <div
-          className={`lg:col-span-4 xl:col-span-3 lg:border-r border-slate-200 flex-col min-h-0 min-w-0 bg-white ${
+          className={`lg:col-span-3 xl:col-span-3 lg:border-r border-slate-200 flex-col min-h-0 min-w-0 bg-white ${
             mobileView === "list" ? "flex" : "hidden lg:flex"
           }`}
         >
@@ -835,7 +835,7 @@ export default function InboxPage() {
         {/* COLUMN 2: Chat Canvas */}
         <div
           className={`${
-            showRightPanel ? "lg:col-span-5 xl:col-span-6" : "lg:col-span-8 xl:col-span-9"
+            showRightPanel ? "lg:col-span-6 xl:col-span-6" : "lg:col-span-9 xl:col-span-9"
           } ${showRightPanel ? "lg:border-r border-slate-200" : ""} flex-col min-h-0 min-w-0 ${
             mobileView === "chat" && selectedId ? "flex" : "hidden lg:flex"
           }`}
@@ -1120,17 +1120,17 @@ export default function InboxPage() {
 
         {/* COLUMN 3: Right Panel — Quick Appointment & Customer CRM Details */}
         {(showRightPanel || mobileView === "details") && (
-          <CustomScroll
-            variant="light"
-            className={`lg:col-span-3 xl:col-span-3 bg-slate-50/70 min-h-0 min-w-0 ${
+          <div
+            className={`lg:col-span-3 xl:col-span-3 bg-slate-50/70 min-h-0 min-w-0 flex-col ${
               mobileView === "details" && selectedId
-                ? "block"
+                ? "flex"
                 : showRightPanel
-                ? "hidden lg:block"
+                ? "hidden lg:flex"
                 : "hidden"
             }`}
           >
-            <div className="p-4 space-y-3.5">
+            <CustomScroll variant="light" className="flex-1 min-h-0">
+              <div className="p-4 space-y-3.5">
               {/* Mobile back header */}
               <div className="flex items-center justify-between gap-2 lg:hidden pb-2 border-b border-slate-200">
                 <button
@@ -1418,8 +1418,9 @@ export default function InboxPage() {
               ) : (
                 <p className="text-xs text-slate-400">Önce soldan bir konuşma seçin.</p>
               )}
-            </div>
-          </CustomScroll>
+              </div>
+            </CustomScroll>
+          </div>
         )}
       </div>
     </div>
