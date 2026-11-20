@@ -569,9 +569,13 @@ export default function InboxPage() {
   const selectedTags = parseTags(selectedConv?.contact.tags);
 
   return (
-    <div className="space-y-3 min-w-0">
-      {/* Compact Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="space-y-2.5 sm:space-y-3 min-w-0">
+      {/* Compact Header — hidden on mobile when inside active chat/details so WhatsApp messages use full screen */}
+      <div
+        className={`flex-wrap items-center justify-between gap-2 ${
+          mobileView === "list" ? "flex" : "hidden lg:flex"
+        }`}
+      >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
             <MessageSquare className="w-4 h-4" />
@@ -626,8 +630,14 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Main Unified Workspace — uses 100dvh on mobile so virtual keyboard never covers composer */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 h-[calc(100dvh-13.5rem)] sm:h-[calc(100dvh-12.5rem)] lg:h-[calc(100vh-11rem)] min-h-[480px]">
+      {/* Main Unified Workspace — full viewport height between topbar and mobile dock so composer & messages are never clipped */}
+      <div
+        className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden grid grid-cols-1 lg:grid-cols-12 lg:h-[calc(100vh-11rem)] lg:min-h-[540px] ${
+          mobileView === "list"
+            ? "h-[calc(100dvh-13rem)] sm:h-[calc(100dvh-12.5rem)]"
+            : "h-[calc(100dvh-9.75rem)]"
+        }`}
+      >
         {/* COLUMN 1: Conversation List */}
         <div
           className={`lg:col-span-4 xl:col-span-3 lg:border-r border-slate-200 flex-col min-h-0 min-w-0 bg-white ${
